@@ -1,8 +1,8 @@
 export const TIMER_SECONDS = 30;
 export const MAX_PLAYERS = 4;
 
-const round1Values = [100, 200, 300, 500];
-const round2Values = [200, 400, 600, 1000];
+const round1Values = [100, 200, 300, 400, 500];
+const round2Values = [200, 400, 600, 800, 1000];
 
 function buildQuestions(prefix, prompts, values) {
   return values.map((value, index) => ({
@@ -33,10 +33,6 @@ const samplePrompts = {
   flags: [
     { prompt: "Welche Flagge zeigt einen roten Kreis auf weißem Grund?", answer: "Japan" },
     { prompt: "Welche Farben hat die Flagge Italiens?", answer: "Grün Weiß Rot" }
-  ],
-  logos: [
-    { prompt: "Welche Marke nutzt einen angebissenen Apfel als Logo?", answer: "Apple" },
-    { prompt: "Welche Automarke hat vier Ringe?", answer: "Audi" }
   ]
 };
 
@@ -58,8 +54,7 @@ export const rounds = [
       createCategory("question", "Was ist die Frage", "question", round1Values),
       createCategory("general", "Allgemein", "general", round1Values),
       createCategory("numbers", "Zahlen", "numbers", round1Values),
-      createCategory("flags", "Flaggen", "flags", round1Values),
-      createCategory("logos", "Logos", "logos", round1Values)
+      createCategory("flags", "Flaggen", "flags", round1Values)
     ]
   },
   {
@@ -71,8 +66,7 @@ export const rounds = [
       createCategory("question", "Was ist die Frage", "question", round2Values),
       createCategory("general", "Allgemein", "general", round2Values),
       createCategory("numbers", "Zahlen", "numbers", round2Values),
-      createCategory("flags", "Flaggen", "flags", round2Values),
-      createCategory("logos", "Logos", "logos", round2Values)
+      createCategory("flags", "Flaggen", "flags", round2Values)
     ]
   }
 ];

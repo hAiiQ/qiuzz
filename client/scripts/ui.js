@@ -1,6 +1,6 @@
-export function initUI({ appEl, state, network }) {
-  const dom = buildLayout(appEl);
-  let answerWindow = null;
+export function initUI({ appEl, state, network, camera }) {
+  const dom = buildLayout(appEl, state.data.client.role);
+  let adminWindow = null;
 
   dom.nameForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -28,46 +28,47 @@ export function initUI({ appEl, state, network }) {
   });
 
   dom.playersArea.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLButtonElement)) return;
-    if (target.dataset.action === "slot-kick") {
-      const slotIndex = Number(target.dataset.slot);
+    const button = event.target instanceof HTMLElement ? event.target.closest("button") : null;
+    if (!(button instanceof HTMLButtonElement)) return;
+    if (button.dataset.action === "slot-kick") {
+      const slotIndex = Number(button.dataset.slot);
       if (Number.isInteger(slotIndex) && window.confirm("Slot wirklich freigeben?")) {
         network.sendAction({ type: "admin:kickPlayer", slotIndex });
       }
+      return;
+    }
+    if (
+      button.dataset.action === "toggle-camera" &&
+      button.dataset.sessionId === state.data.client.sessionId
+    ) {
+      camera?.toggleCamera();
     }
   });
 
-  dom.adminControls.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLButtonElement)) return;
-    const { action } = target.dataset;
-    if (action === "correct") {
-      network.sendAction({ type: "admin:markAnswer", verdict: "correct" });
-    }
-    if (action === "incorrect") {
-      network.sendAction({ type: "admin:markAnswer", verdict: "incorrect" });
-    }
-    if (action === "close") {
-      network.sendAction({ type: "admin:closeQuestion" });
-    }
-    if (action === "answer-window") {
-      const win = ensureAnswerWindow();
-      if (win) {
-        answerWindow = win;
-        renderAdminAnswerWindow(win, state.data.ui.adminAnswer);
-      } else {
+  if (dom.adminCameraToggle && camera?.toggleCamera) {
+    dom.adminCameraToggle.addEventListener("click", () => {
+      if (state.data.client.role === "admin") {
+        camera.toggleCamera();
+      }
+    });
+  }
+
+  if (dom.adminWindowButton) {
+    dom.adminWindowButton.addEventListener("click", () => {
+      if (state.data.client.role !== "admin") {
+        return;
+      }
+      const win = ensureAdminWindow();
+      if (!win) {
         state.update((data) => {
           data.ui.error = "Popup konnte nicht geöffnet werden. Erlaube Popups für diese Seite.";
         });
+        return;
       }
-    }
-    if (action === "reset") {
-      if (window.confirm("Spiel wirklich zurücksetzen?")) {
-        network.sendAction({ type: "admin:reset" });
-      }
-    }
-  });
+      adminWindow = win;
+      renderAdminWindowContent(win, state.data, network);
+    });
+  }
 
   state.subscribe((data) => {
     renderBoard(dom, data, state.data.client.role);
@@ -75,31 +76,48 @@ export function initUI({ appEl, state, network }) {
     renderAdminCard(dom, data);
     renderAdminControlsState(dom, data);
     renderBuzzer(dom, data);
+    renderCameraToggle(dom, data);
     renderNameModal(dom, data);
-    answerWindow = renderAdminAnswer(dom, data, state.data.client.role, answerWindow);
+    adminWindow = syncAdminWindow(data, state.data.client.role, adminWindow, network);
     renderErrors(dom, data);
   });
 }
 
-function buildLayout(appEl) {
+function buildLayout(appEl, role) {
+  const isAdmin = role === "admin";
   appEl.innerHTML = `
     <main class="app-shell">
       <section class="admin-area">
-        <div class="video-card admin-card">
+        <div class="video-card admin-card player-card">
           <div class="video-feed" data-role="admin-video">
+            ${isAdmin ? `
+            <button
+              type="button"
+              class="camera-pill"
+              data-role="admin-camera-toggle"
+              aria-label="Kamera umschalten"
+            >
+              <span aria-hidden="true">📷</span>
+            </button>` : ""}
             <span class="video-placeholder">Admin Kamera</span>
+            <div class="player-meta">
+              <span class="player-meta__name" data-role="admin-name-overlay">Admin</span>
+              <span class="player-meta__score">Moderator</span>
+            </div>
           </div>
           <div class="name-tag" data-role="admin-name">Admin</div>
         </div>
         <div class="admin-controls" data-role="admin-controls">
           <h2>Admin Bedienung</h2>
+          <p class="admin-controls__hint">Öffne das Popup, um Fragen zu steuern und Antworten zu sehen.</p>
           <div class="controls-grid">
-            <button data-action="correct">Richtige Antwort</button>
-            <button data-action="incorrect">Falsche Antwort</button>
-            <button data-action="close">Frage schließen</button>
-            <button data-action="answer-window">Antwortfenster öffnen</button>
-            <button data-action="reset" class="danger">Neues Spiel</button>
+            <button data-action="open-admin-window">Admin-Fenster öffnen</button>
           </div>
+        </div>
+        <div class="player-controls" data-role="player-controls" hidden>
+          <h2>Buzzern</h2>
+          <p class="player-controls__hint">Sobald der Moderator buzzern freigibt, kannst du hier drücken.</p>
+          <button id="buzzer-button" disabled>Buzzern</button>
         </div>
       </section>
       <section class="board-area">
@@ -113,9 +131,6 @@ function buildLayout(appEl) {
         <div class="question-panel" data-role="question-panel">Wähle eine Frage um zu starten.</div>
       </section>
       <section class="players-area" data-role="players"></section>
-      <div class="buzzer-panel">
-        <button id="buzzer-button" disabled>Buzzern</button>
-      </div>
     </main>
     <div class="name-modal" data-role="name-modal">
       <form class="name-form">
@@ -136,7 +151,11 @@ function buildLayout(appEl) {
     timerChip: appEl.querySelector('[data-role="timer"]'),
     roundLabel: appEl.querySelector('[data-role="round-label"]'),
     adminControls: appEl.querySelector('[data-role="admin-controls"]'),
+    adminWindowButton: appEl.querySelector('[data-action="open-admin-window"]'),
+    playerControls: appEl.querySelector('[data-role="player-controls"]'),
     adminName: appEl.querySelector('[data-role="admin-name"]'),
+    adminNameOverlay: appEl.querySelector('[data-role="admin-name-overlay"]'),
+    adminCameraToggle: appEl.querySelector('[data-role="admin-camera-toggle"]'),
     buzzerButton: appEl.querySelector('#buzzer-button'),
     nameModal: appEl.querySelector('[data-role="name-modal"]'),
     nameForm: appEl.querySelector('.name-form'),
@@ -145,11 +164,188 @@ function buildLayout(appEl) {
   };
 }
 
+function syncAdminWindow(data, role, currentWindow, network) {
+  let adminWindow = currentWindow;
+  if (adminWindow && adminWindow.closed) {
+    adminWindow = null;
+  }
+  if (role !== "admin") {
+    if (adminWindow) {
+      adminWindow.close();
+    }
+    return null;
+  }
+  if (adminWindow) {
+    renderAdminWindowContent(adminWindow, data, network);
+  }
+  return adminWindow;
+}
+
+function ensureAdminWindow() {
+  const existing = window.open("", "quizduell-admin", "width=520,height=640");
+  if (!existing) {
+    return null;
+  }
+  existing.focus();
+  return existing;
+}
+
+function renderAdminWindowContent(targetWindow, data, network) {
+  if (!targetWindow || targetWindow.closed) return;
+  const doc = targetWindow.document;
+  doc.title = "Quizduell – Admin";
+  const active = data.game.activeQuestion;
+  const answer = data.ui.adminAnswer;
+  const prompt = escapeHtml(answer?.prompt || active?.prompt || "Noch keine aktive Frage.");
+  const response = escapeHtml(answer?.answer || "–");
+  const statusLabel = active
+    ? active.status === "awaiting_buzz"
+      ? "Buzzern erlaubt"
+      : active.status === "answering"
+        ? "Antwort wird geprüft"
+        : "Frage aktiv"
+    : "Kein Frage aktiv";
+  const canJudge = Boolean(active && active.status === "answering");
+  const canClose = Boolean(active);
+  const roundLabel = `${data.game.roundTitle} (${data.game.roundNumber}/${data.game.totalRounds})`;
+
+  doc.body.innerHTML = `
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Inter", "Segoe UI", sans-serif;
+        background: #0e0520;
+        color: #f9f3ff;
+        min-height: 100vh;
+        padding: 1.5rem;
+      }
+      .admin-popup {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+      }
+      .admin-popup__section {
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 18px;
+        padding: 1rem 1.25rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      }
+      h2 {
+        margin: 0 0 0.35rem;
+        font-size: 1.1rem;
+      }
+      p {
+        margin: 0;
+      }
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.25rem 0.8rem;
+        border-radius: 999px;
+        background: rgba(127, 77, 255, 0.25);
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin-top: 0.35rem;
+      }
+      .question-prompt {
+        font-size: 1rem;
+        line-height: 1.5;
+        margin-top: 0.5rem;
+      }
+      .answer-text {
+        font-size: 1.15rem;
+        line-height: 1.4;
+        margin-top: 0.5rem;
+        font-weight: 600;
+      }
+      .controls-grid {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .controls-grid button {
+        padding: 0.9rem;
+        border-radius: 12px;
+        border: none;
+        background: linear-gradient(90deg, #7f4dff, #a782ff);
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.15s ease, transform 0.15s ease;
+      }
+      .controls-grid button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .controls-grid button.danger {
+        background: #ff4d7a;
+      }
+    </style>
+    <div class="admin-popup">
+      <section class="admin-popup__section">
+        <h2>Spielstatus</h2>
+        <p>${escapeHtml(roundLabel)}</p>
+        <span class="status-chip">${escapeHtml(statusLabel)}</span>
+      </section>
+      <section class="admin-popup__section">
+        <h2>Frage</h2>
+        <p class="question-prompt">${prompt}</p>
+        <h2>Antwort</h2>
+        <p class="answer-text">${response}</p>
+      </section>
+      <section class="admin-popup__section">
+        <h2>Aktionen</h2>
+        <div class="controls-grid">
+          <button data-action="correct" ${!canJudge ? "disabled" : ""}>Richtige Antwort</button>
+          <button data-action="incorrect" ${!canJudge ? "disabled" : ""}>Falsche Antwort</button>
+          <button data-action="close" ${!canClose ? "disabled" : ""}>Frage schließen</button>
+          <button data-action="reset" class="danger">Neues Spiel</button>
+        </div>
+      </section>
+    </div>
+  `;
+
+  const sendAction = (action) => {
+    switch (action) {
+      case "correct":
+        network.sendAction({ type: "admin:markAnswer", verdict: "correct" });
+        break;
+      case "incorrect":
+        network.sendAction({ type: "admin:markAnswer", verdict: "incorrect" });
+        break;
+      case "close":
+        network.sendAction({ type: "admin:closeQuestion" });
+        break;
+      case "reset":
+        if (targetWindow.confirm("Spiel wirklich zurücksetzen?")) {
+          network.sendAction({ type: "admin:reset" });
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
+  doc.querySelectorAll("[data-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const action = button.getAttribute("data-action");
+      if (action) {
+        sendAction(action);
+      }
+    });
+  });
+}
 function renderAdminCard(dom, data) {
   if (!dom.adminName) return;
   const admin = data.game.admin;
   const localName = data.client.role === "admin" && data.client.name ? data.client.name : null;
   const displayName = localName || admin?.name || "Admin";
+  if (dom.adminNameOverlay) {
+    dom.adminNameOverlay.textContent = displayName;
+  }
   if (admin?.connected) {
     dom.adminName.textContent = `${displayName} (Admin)`;
   } else {
@@ -203,6 +399,7 @@ function renderBoard(dom, data, role) {
 }
 
 function renderPlayers(dom, data) {
+  const clientSessionId = data.client.sessionId;
   dom.playersArea.innerHTML = data.game.players
     .map((player) => {
       const classes = ["video-card", "player-card"];
@@ -210,16 +407,31 @@ function renderPlayers(dom, data) {
       if (player.isAnswering) classes.push("is-answering");
       if (!player.connected) classes.push("is-offline");
       const canKick = data.client.role === "admin" && Boolean(player.sessionId);
-      const actionButton = canKick
-        ? `<button class="slot-action" data-action="slot-kick" data-slot="${player.slotIndex}">Slot räumen</button>`
+      const hasSession = Boolean(player.sessionId) && Boolean(clientSessionId);
+      const isLocal = hasSession && player.sessionId === clientSessionId;
+      let cameraButton = "";
+      if (Number.isInteger(player.slotIndex) && isLocal) {
+        cameraButton = `<button class="camera-pill${data.ui.cameraEnabled ? "" : " is-off"}" type="button" data-action="toggle-camera" data-camera-indicator="local" data-session-id="${player.sessionId}" data-slot="${player.slotIndex}" aria-label="Kamera ${
+          data.ui.cameraEnabled ? "deaktivieren" : "aktivieren"
+        }">
+            <span aria-hidden="true">📷</span>
+          </button>`;
+      }
+      const kickButton = canKick
+        ? `<button class="slot-pill" type="button" data-action="slot-kick" data-slot="${player.slotIndex}" aria-label="Slot räumen">
+            <span aria-hidden="true">✖</span>
+          </button>`
         : "";
       return `<div class="${classes.join(" ")}">
         <div class="video-feed" data-slot-video="${player.slotIndex}">
           <span class="video-placeholder">${player.name}</span>
+          ${cameraButton}
+          ${kickButton}
+          <div class="player-meta">
+            <span class="player-meta__name">${player.name}</span>
+            <span class="player-meta__score">${player.score} Punkte</span>
+          </div>
         </div>
-        <div class="name-tag">${player.name}</div>
-        <div class="score">${player.score} Punkte</div>
-        ${actionButton}
       </div>`;
     })
     .join("");
@@ -227,29 +439,27 @@ function renderPlayers(dom, data) {
 
 function renderAdminControlsState(dom, data) {
   const isAdmin = data.client.role === "admin";
-  const active = data.game.activeQuestion;
-  const correctBtn = dom.adminControls.querySelector('[data-action="correct"]');
-  const incorrectBtn = dom.adminControls.querySelector('[data-action="incorrect"]');
-  const closeBtn = dom.adminControls.querySelector('[data-action="close"]');
-  const answerBtn = dom.adminControls.querySelector('[data-action="answer-window"]');
-  const resetBtn = dom.adminControls.querySelector('[data-action="reset"]');
+  const controlsEl = dom.adminControls;
 
   if (!isAdmin) {
-    dom.adminControls.classList.add("is-disabled");
-    [correctBtn, incorrectBtn, closeBtn, answerBtn, resetBtn].forEach((btn) => {
-      btn.disabled = true;
-    });
+    if (controlsEl) controlsEl.hidden = true;
+    if (dom.playerControls) {
+      dom.playerControls.hidden = false;
+      dom.playerControls.style.display = "flex";
+    }
     return;
   }
 
-  dom.adminControls.classList.remove("is-disabled");
-  const canJudge = active && active.status === "answering";
-  const canClose = Boolean(active);
-  correctBtn.disabled = !canJudge;
-  incorrectBtn.disabled = !canJudge;
-  closeBtn.disabled = !canClose;
-  answerBtn.disabled = false;
-  resetBtn.disabled = false;
+  if (!controlsEl) return;
+  if (dom.playerControls) {
+    dom.playerControls.hidden = true;
+    dom.playerControls.style.display = "none";
+  }
+  controlsEl.hidden = false;
+  controlsEl.classList.remove("is-disabled");
+  if (dom.adminWindowButton) {
+    dom.adminWindowButton.disabled = false;
+  }
 }
 
 function renderBuzzer(dom, data) {
@@ -265,6 +475,21 @@ function renderBuzzer(dom, data) {
   dom.buzzerButton.disabled = !eligible;
 }
 
+function renderCameraToggle(dom, data) {
+  const enabled = data.ui.cameraEnabled;
+  if (dom.adminCameraToggle) {
+    dom.adminCameraToggle.classList.toggle("is-off", !enabled);
+    dom.adminCameraToggle.setAttribute("aria-pressed", String(!enabled));
+    dom.adminCameraToggle.title = enabled ? "Kamera deaktivieren" : "Kamera aktivieren";
+  }
+  const localButtons = dom.playersArea?.querySelectorAll('[data-camera-indicator="local"]') ?? [];
+  localButtons.forEach((button) => {
+    button.classList.toggle("is-off", !enabled);
+    button.setAttribute("aria-pressed", String(!enabled));
+    button.title = enabled ? "Kamera deaktivieren" : "Kamera aktivieren";
+  });
+}
+
 function renderNameModal(dom, data) {
   const shouldShow = data.ui.showNamePrompt && !data.client.joined;
   if (!dom.nameModal) {
@@ -275,89 +500,6 @@ function renderNameModal(dom, data) {
     dom.nameInput.value = data.client.name || "";
   }
 }
-
-function renderAdminAnswer(dom, data, role, currentWindow) {
-  let answerWindow = currentWindow;
-  if (answerWindow && answerWindow.closed) {
-    answerWindow = null;
-  }
-  if (role !== "admin") {
-    if (answerWindow) {
-      answerWindow.close();
-      answerWindow = null;
-    }
-    return answerWindow;
-  }
-  if (answerWindow) {
-    renderAdminAnswerWindow(answerWindow, data.ui.adminAnswer);
-  }
-  return answerWindow;
-}
-
-function ensureAnswerWindow() {
-  const existing = window.open("", "quizduell-answer", "width=420,height=320");
-  if (!existing) {
-    return null;
-  }
-  if (existing.document.body.childElementCount === 0) {
-    renderAdminAnswerWindow(existing, null);
-  }
-  existing.focus();
-  return existing;
-}
-
-function renderAdminAnswerWindow(answerWindow, answer) {
-  if (!answerWindow || answerWindow.closed) return;
-  const doc = answerWindow.document;
-  doc.title = "Quizduell – Antwort";
-  const prompt = escapeHtml(answer?.prompt || "Noch keine aktive Frage.");
-  const response = escapeHtml(answer?.answer || "–");
-  doc.body.innerHTML = `
-    <style>
-      body {
-        margin: 0;
-        font-family: "Inter", "Segoe UI", sans-serif;
-        background: #12062c;
-        color: #f9f3ff;
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .card {
-        padding: 2rem;
-        max-width: 420px;
-        text-align: center;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
-      }
-      h1 {
-        font-size: 1rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin-bottom: 0.5rem;
-        color: #a782ff;
-      }
-      p {
-        margin: 0.5rem 0 1.5rem;
-        font-size: 0.95rem;
-        opacity: 0.85;
-      }
-      strong {
-        font-size: 1.5rem;
-        color: #49ffb1;
-      }
-    </style>
-    <div class="card">
-      <h1>Antwort</h1>
-      <p>${prompt}</p>
-      <strong>${response}</strong>
-    </div>
-  `;
-}
-
 
 function escapeHtml(text) {
   return String(text)

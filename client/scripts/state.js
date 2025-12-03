@@ -46,7 +46,8 @@ export function initState() {
     ui: {
       showNamePrompt: !storedName,
       error: null,
-      adminAnswer: null
+      adminAnswer: null,
+      cameraEnabled: true
     }
   };
 

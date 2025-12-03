@@ -1,7 +1,7 @@
 {
   "questionStatus": {
     "songs-r1-100": {
-      "asked": false
+      "asked": true
     },
     "songs-r1-200": {
       "asked": false
@@ -9,11 +9,14 @@
     "songs-r1-300": {
       "asked": false
     },
+    "songs-r1-400": {
+      "asked": false
+    },
     "songs-r1-500": {
       "asked": false
     },
     "question-r1-100": {
-      "asked": false
+      "asked": true
     },
     "question-r1-200": {
       "asked": false
@@ -21,16 +24,22 @@
     "question-r1-300": {
       "asked": false
     },
+    "question-r1-400": {
+      "asked": false
+    },
     "question-r1-500": {
       "asked": false
     },
     "general-r1-100": {
-      "asked": false
+      "asked": true
     },
     "general-r1-200": {
       "asked": false
     },
     "general-r1-300": {
+      "asked": false
+    },
+    "general-r1-400": {
       "asked": false
     },
     "general-r1-500": {
@@ -45,6 +54,9 @@
     "numbers-r1-300": {
       "asked": false
     },
+    "numbers-r1-400": {
+      "asked": false
+    },
     "numbers-r1-500": {
       "asked": false
     },
@@ -57,19 +69,10 @@
     "flags-r1-300": {
       "asked": false
     },
+    "flags-r1-400": {
+      "asked": false
+    },
     "flags-r1-500": {
-      "asked": false
-    },
-    "logos-r1-100": {
-      "asked": false
-    },
-    "logos-r1-200": {
-      "asked": false
-    },
-    "logos-r1-300": {
-      "asked": false
-    },
-    "logos-r1-500": {
       "asked": false
     },
     "songs-r2-200": {
@@ -79,6 +82,9 @@
       "asked": false
     },
     "songs-r2-600": {
+      "asked": false
+    },
+    "songs-r2-800": {
       "asked": false
     },
     "songs-r2-1000": {
@@ -93,6 +99,9 @@
     "question-r2-600": {
       "asked": false
     },
+    "question-r2-800": {
+      "asked": false
+    },
     "question-r2-1000": {
       "asked": false
     },
@@ -103,6 +112,9 @@
       "asked": false
     },
     "general-r2-600": {
+      "asked": false
+    },
+    "general-r2-800": {
       "asked": false
     },
     "general-r2-1000": {
@@ -117,6 +129,9 @@
     "numbers-r2-600": {
       "asked": false
     },
+    "numbers-r2-800": {
+      "asked": false
+    },
     "numbers-r2-1000": {
       "asked": false
     },
@@ -129,26 +144,22 @@
     "flags-r2-600": {
       "asked": false
     },
+    "flags-r2-800": {
+      "asked": false
+    },
     "flags-r2-1000": {
-      "asked": false
-    },
-    "logos-r2-200": {
-      "asked": false
-    },
-    "logos-r2-400": {
-      "asked": false
-    },
-    "logos-r2-600": {
-      "asked": false
-    },
-    "logos-r2-1000": {
       "asked": false
     }
   },
   "currentRoundIndex": 0,
   "turnSlotIndex": 0,
   "playerSlots": [
-    null,
+    {
+      "id": "d96395d5-f49d-4e3e-8c19-bbdfbad5d9bb",
+      "name": "test1",
+      "score": -50,
+      "slotIndex": 0
+    },
     null,
     null,
     null

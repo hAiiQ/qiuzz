@@ -11,14 +11,22 @@ let storeRef = null;
 let networkRef = null;
 let participantMap = new Map();
 
-export function initCamera(store, network) {
-  if (!navigator.mediaDevices?.getUserMedia) {
-    console.warn("MediaDevices API nicht verfügbar");
-    return;
+const noopController = {
+  toggleCamera() {
+    storeRef?.update((state) => {
+      state.ui.cameraEnabled = !state.ui.cameraEnabled;
+    });
   }
+};
 
+export function initCamera(store, network) {
   storeRef = store;
   networkRef = network;
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    console.warn("MediaDevices API nicht verfügbar");
+    return noopController;
+  }
 
   network.onMessage("signal", ({ fromSessionId, payload }) => {
     if (!fromSessionId || !payload) return;
@@ -32,10 +40,9 @@ export function initCamera(store, network) {
       return;
     }
     participantMap = buildParticipantMap(data);
-    attachLocalStream(data);
-    syncPeers(data);
     ensureLocalStream()
       .then(() => {
+        applyMediaSettings(data);
         attachLocalStream(data);
         syncPeers(data);
         peers.forEach((peer, sessionId) => {
@@ -48,6 +55,12 @@ export function initCamera(store, network) {
         /* Fehler bereits gemeldet */
       });
   });
+
+  return {
+    toggleCamera() {
+      setCameraEnabled(!storeRef.data.ui.cameraEnabled);
+    }
+  };
 }
 
 function buildParticipantMap(data) {
@@ -78,7 +91,7 @@ async function ensureLocalStream() {
   }
   if (!streamPromise) {
     streamPromise = navigator.mediaDevices
-      .getUserMedia({ video: true, audio: true })
+      .getUserMedia({ video: true, audio: false })
       .then((stream) => {
         localStream = stream;
         return stream;
@@ -104,9 +117,40 @@ function attachLocalStream(data) {
     container = document.querySelector(`[data-slot-video="${data.client.slotIndex}"]`);
   }
   if (container) {
-    attachStream(container, localStream, true);
+    attachStream(container, localStream);
   }
 }
+
+function applyMediaSettings(data) {
+  if (!localStream) return;
+  const { cameraEnabled } = data.ui;
+  localStream.getVideoTracks().forEach((track) => {
+    track.enabled = Boolean(cameraEnabled);
+  });
+}
+
+function setCameraEnabled(enabled) {
+  if (!storeRef) return;
+  storeRef.update((state) => {
+    state.ui.cameraEnabled = enabled;
+  });
+  if (!navigator.mediaDevices?.getUserMedia) return;
+  const promise = enabled ? ensureLocalStream() : Promise.resolve(localStream);
+  promise
+    .then(() => {
+      if (!storeRef) return;
+      applyMediaSettings(storeRef.data);
+      if (enabled) {
+        attachLocalStream(storeRef.data);
+        syncPeers(storeRef.data);
+      }
+    })
+    .catch(() => {
+      /* Fehler bereits behandelt */
+    });
+}
+
+// Audio stays muted globally, so no audio toggles are implemented.
 
 function syncPeers(data) {
   if (!localStream) return;
@@ -239,7 +283,7 @@ function attachRemoteStream(sessionId, stream) {
   const info = participantMap.get(sessionId);
   if (!info) return;
   const container = getContainerForParticipant(info);
-  attachStream(container, stream, false);
+  attachStream(container, stream);
 }
 
 function getContainerForParticipant(info) {
@@ -253,25 +297,46 @@ function getContainerForParticipant(info) {
   return null;
 }
 
-function attachStream(container, stream, muted) {
+function attachStream(container, stream) {
   if (!container) return;
-  let video = container.querySelector("video");
+  let video = container.querySelector('video[data-role="webrtc-stream"]');
   if (!video) {
     video = document.createElement("video");
+    video.dataset.role = "webrtc-stream";
     video.autoplay = true;
     video.playsInline = true;
-    container.innerHTML = "";
-    container.appendChild(video);
+    video.classList.add("video-feed__stream");
+    container.insertBefore(video, container.firstChild);
   }
   if (video.srcObject !== stream) {
     video.srcObject = stream;
   }
-  video.muted = muted;
+  video.muted = true;
+  video.volume = 0;
+  video.setAttribute("muted", "");
   video.controls = false;
+  container.classList.add("has-stream");
+  const placeholder = container.querySelector(".video-placeholder");
+  if (placeholder) {
+    placeholder.hidden = true;
+  }
 }
 
 function restorePlaceholder(info) {
   const container = getContainerForParticipant(info);
   if (!container) return;
-  container.innerHTML = `<span class="video-placeholder">${info.name}</span>`;
+  const video = container.querySelector('video[data-role="webrtc-stream"]');
+  if (video) {
+    video.srcObject = null;
+    video.remove();
+  }
+  container.classList.remove("has-stream");
+  let placeholder = container.querySelector(".video-placeholder");
+  if (!placeholder) {
+    placeholder = document.createElement("span");
+    placeholder.className = "video-placeholder";
+    container.appendChild(placeholder);
+  }
+  placeholder.textContent = info.name || "Slot frei";
+  placeholder.hidden = false;
 }

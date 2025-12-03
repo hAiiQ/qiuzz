@@ -30,23 +30,27 @@ body {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 320px 1fr;
-  grid-template-rows: auto 1fr auto;
-  gap: 1rem;
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 1.5rem;
   padding: 1.5rem;
-  max-width: 1400px;
+  max-width: none;
+  width: 100%;
   margin: 0 auto;
+  min-height: 100vh;
 }
 
 .admin-area {
-  grid-row: 1 / span 3;
+  grid-column: 1;
+  grid-row: 1 / span 2;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
 .board-area {
-  grid-column: 2 / 3;
+  grid-column: 2;
+  grid-row: 1 / span 2;
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 24px;
@@ -55,10 +59,14 @@ body {
 }
 
 .players-area {
-  grid-column: 2 / 3;
+  grid-column: 1 / -1;
+  grid-row: 3;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem;
+  padding: 0.5rem 0;
+  justify-items: stretch;
+  align-self: end;
 }
 
 .video-card {
@@ -71,6 +79,16 @@ body {
   gap: 0.5rem;
   position: relative;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+  width: 100%;
+  max-width: 450px;
+  margin: 0;
+}
+
+.player-card {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
 }
 
 .video-card.is-turn {
@@ -89,7 +107,7 @@ body {
 
 .video-feed {
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
+  border-radius: 20px;
   aspect-ratio: 16 / 9;
   display: flex;
   align-items: center;
@@ -98,6 +116,87 @@ body {
   font-size: 0.9rem;
   overflow: hidden;
   position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+}
+
+.video-feed.has-stream .video-placeholder {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.video-feed:hover .camera-pill,
+.video-feed:hover .slot-pill {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.video-feed__stream,
+.video-feed video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  background: black;
+  z-index: 0;
+}
+
+.camera-pill {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  border: none;
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  background: rgba(5, 0, 19, 0.8);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, background 0.15s ease;
+  z-index: 2;
+}
+
+.camera-pill.is-off {
+  opacity: 0.6;
+}
+
+.camera-pill span {
+  line-height: 1;
+}
+
+.slot-pill {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.65rem;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 77, 122, 0.85);
+  color: #fff;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+  z-index: 2;
+}
+
+.slot-pill:hover {
+  transform: scale(1.05);
+  background: rgba(255, 77, 122, 1);
 }
 
 .video-feed video {
@@ -108,42 +207,44 @@ body {
   background: black;
 }
 
-.name-tag {
-  background: rgba(127, 77, 255, 0.25);
-  border-radius: 999px;
-  padding: 0.35rem 0.75rem;
+.player-meta {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.9rem;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.75));
+  font-size: 0.95rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.player-meta__name {
   font-weight: 600;
-  text-align: center;
 }
 
-.score {
-  font-size: 0.9rem;
-  color: var(--purple-light);
-  text-align: center;
+.player-meta__score {
+  font-weight: 500;
+  color: var(--green);
 }
 
-.slot-action {
-  margin-top: 0.5rem;
-  width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.85);
-  border-radius: 10px;
-  padding: 0.4rem 0.6rem;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.slot-action:hover {
-  background: rgba(255, 77, 122, 0.2);
-  border-color: rgba(255, 77, 122, 0.5);
-}
 
 .admin-controls {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 1rem;
+  width: 100%;
+  max-width: 450px;
+}
+
+.admin-controls__hint {
+  margin: 0 0 0.75rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.9rem;
 }
 
 .admin-controls.is-disabled {
@@ -206,9 +307,10 @@ body {
 
 .board-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.6rem;
-  margin-top: 1rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  column-gap: 0.75rem;
+  row-gap: 0.9rem;
+  margin-top: 1.2rem;
 }
 
 .column-title {
@@ -220,12 +322,12 @@ body {
 
 .cell {
   width: 100%;
-  padding: 0.9rem 0;
+  padding: 1rem 0;
   border-radius: 14px;
   border: none;
   background: rgba(255, 255, 255, 0.08);
   color: white;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.15s ease, opacity 0.15s ease;
@@ -264,13 +366,8 @@ body {
   color: rgba(255, 255, 255, 0.6);
 }
 
-.buzzer-panel {
-  grid-column: 2 / 3;
-  display: flex;
-  justify-content: center;
-}
-
 #buzzer-button {
+  width: 100%;
   padding: 1rem 2.5rem;
   font-size: 1.2rem;
   border-radius: 999px;
@@ -288,6 +385,25 @@ body {
   cursor: not-allowed;
   transform: scale(0.95);
 }
+
+.player-controls {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 450px;
+}
+
+.player-controls__hint {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
 
 .name-modal {
   position: fixed;
@@ -351,10 +467,17 @@ body {
     flex-direction: row;
     flex-wrap: wrap;
   }
-  .players-area {
-    grid-column: auto;
-  }
   .board-grid {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+  .players-area {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .players-area {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
 }
