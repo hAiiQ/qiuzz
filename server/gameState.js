@@ -189,18 +189,63 @@ export function handleAdminCloseQuestion(state) {
   return { ok: true };
 }
 
-export function handleReset(state) {
+export function handleReset(state, options = {}) {
+  const { dropPlayers = false } = options;
   const fresh = createGameState();
   state.questionStatus = fresh.questionStatus;
   state.currentRoundIndex = fresh.currentRoundIndex;
   state.turnSlotIndex = fresh.turnSlotIndex;
   state.activeQuestion = null;
-  for (let i = 0; i < MAX_PLAYERS; i += 1) {
-    if (state.playerSlots[i]) {
-      state.playerSlots[i].score = 0;
+  const removedSessions = [];
+
+  if (dropPlayers) {
+    state.playerSlots.forEach((player) => {
+      if (player?.id) {
+        removedSessions.push(player.id);
+      }
+    });
+    state.playerSlots = Array.from({ length: MAX_PLAYERS }, () => null);
+  } else {
+    for (let i = 0; i < MAX_PLAYERS; i += 1) {
+      if (state.playerSlots[i]) {
+        state.playerSlots[i].score = 0;
+      }
     }
   }
+
   ensureTurnIndexValid(state);
+  return { removedSessions };
+}
+
+export function handleAdminRemovePlayer(state, slotIndex) {
+  if (typeof slotIndex !== "number" || slotIndex < 0 || slotIndex >= MAX_PLAYERS) {
+    return { ok: false, reason: "invalid-slot" };
+  }
+  const player = state.playerSlots[slotIndex];
+  if (!player) {
+    return { ok: false, reason: "slot-empty" };
+  }
+
+  if (state.activeQuestion) {
+    if (state.activeQuestion.currentResponderSlot === slotIndex) {
+      applyIncorrectAnswer(state, slotIndex);
+    }
+    state.activeQuestion.attemptedSlots.add(slotIndex);
+    if (state.activeQuestion.status === "awaiting_buzz") {
+      const remaining = availableBuzzers(state);
+      if (remaining.length === 0) {
+        finalizeQuestion(state);
+      }
+    }
+  }
+
+  state.playerSlots[slotIndex] = null;
+  if (state.turnSlotIndex === slotIndex) {
+    advanceTurnSlot(state);
+  }
+  ensureTurnIndexValid(state);
+
+  return { ok: true, removedSessionId: player.id };
 }
 
 export function handleBuzzer(state, sessionId) {

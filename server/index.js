@@ -9,6 +9,7 @@ import {
   createGameState,
   handleAdminCloseQuestion,
   handleAdminMarkAnswer,
+  handleAdminRemovePlayer,
   handleAdminSelectQuestion,
   handleBuzzer,
   handleDisconnect,
@@ -90,9 +91,21 @@ function routeEvent(ws, event) {
       });
     case "admin:reset":
       return requireAdmin(ws, () => {
-        handleReset(state);
-        commitStateChange();
+          const result = handleReset(state, { dropPlayers: true });
+          disconnectSessions(result.removedSessions, "reset");
+          commitStateChange();
       });
+      case "admin:kickPlayer":
+        return requireAdmin(ws, () => {
+          const result = handleAdminRemovePlayer(state, event.slotIndex);
+          if (!result.ok) {
+            return send(ws, { type: "error", message: result.reason });
+          }
+          if (result.removedSessionId) {
+            disconnectSessions([result.removedSessionId], "kicked");
+          }
+          commitStateChange();
+        });
     case "buzzer":
       return handlePlayerBuzzer(ws);
     case "signal:relay":
@@ -184,6 +197,25 @@ function broadcastState(skipWs) {
     if (client === skipWs) continue;
     sendState(client, info);
   }
+}
+
+function disconnectSessions(sessionIds = [], reason = "kicked") {
+  sessionIds.forEach((sessionId) => {
+    if (!sessionId) return;
+    const target = sessionLookup.get(sessionId);
+    if (!target) return;
+    send(target, {
+      type: "kicked",
+      reason
+    });
+    target.close();
+    const info = clientSessions.get(target);
+    if (info) {
+      handleDisconnect(state, info.sessionId);
+    }
+    clientSessions.delete(target);
+    sessionLookup.delete(sessionId);
+  });
 }
 
 function commitStateChange({ skipWs } = {}) {

@@ -68,6 +68,18 @@ export function initNetwork(store) {
           state.ui.error = translateError(message.message);
         });
         break;
+      case "kicked":
+        store.update((state) => {
+          state.client.joined = false;
+          state.client.slotIndex = null;
+          state.client.connectionStatus = "disconnected";
+          state.ui.showNamePrompt = true;
+          state.ui.error = message.reason === "reset"
+            ? "Spiel wurde zurückgesetzt. Bitte erneut verbinden."
+            : "Der Admin hat dich entfernt.";
+        });
+        cleanupSocket();
+        break;
       default:
         if (!emitMessage(message.type, message)) {
           console.warn("Unknown message", message);

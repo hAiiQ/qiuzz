@@ -1,10 +1,10 @@
 {
   "questionStatus": {
     "songs-r1-100": {
-      "asked": true
+      "asked": false
     },
     "songs-r1-200": {
-      "asked": true
+      "asked": false
     },
     "songs-r1-300": {
       "asked": false
@@ -13,10 +13,10 @@
       "asked": false
     },
     "question-r1-100": {
-      "asked": true
+      "asked": false
     },
     "question-r1-200": {
-      "asked": true
+      "asked": false
     },
     "question-r1-300": {
       "asked": false
@@ -25,10 +25,10 @@
       "asked": false
     },
     "general-r1-100": {
-      "asked": true
+      "asked": false
     },
     "general-r1-200": {
-      "asked": true
+      "asked": false
     },
     "general-r1-300": {
       "asked": false
@@ -37,22 +37,22 @@
       "asked": false
     },
     "numbers-r1-100": {
-      "asked": true
+      "asked": false
     },
     "numbers-r1-200": {
-      "asked": true
+      "asked": false
     },
     "numbers-r1-300": {
       "asked": false
     },
     "numbers-r1-500": {
-      "asked": true
+      "asked": false
     },
     "flags-r1-100": {
       "asked": false
     },
     "flags-r1-200": {
-      "asked": true
+      "asked": false
     },
     "flags-r1-300": {
       "asked": false
@@ -146,32 +146,12 @@
     }
   },
   "currentRoundIndex": 0,
-  "turnSlotIndex": 3,
+  "turnSlotIndex": 0,
   "playerSlots": [
-    {
-      "id": "afaed457-7fb6-4579-bbe8-74b434fcba91",
-      "name": "hAiQ",
-      "score": 200,
-      "slotIndex": 0
-    },
-    {
-      "id": "d96395d5-f49d-4e3e-8c19-bbdfbad5d9bb",
-      "name": "test1",
-      "score": 400,
-      "slotIndex": 1
-    },
-    {
-      "id": "28b2f9ff-c688-4f14-aa0a-9a8147a19dd2",
-      "name": "asd",
-      "score": -250,
-      "slotIndex": 2
-    },
-    {
-      "id": "d6885708-835f-412d-934e-fc09aff3d59d",
-      "name": "test2",
-      "score": -50,
-      "slotIndex": 3
-    }
+    null,
+    null,
+    null,
+    null
   ],
   "adminProfile": {
     "id": null,

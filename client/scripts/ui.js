@@ -27,6 +27,17 @@ export function initUI({ appEl, state, network }) {
     }
   });
 
+  dom.playersArea.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLButtonElement)) return;
+    if (target.dataset.action === "slot-kick") {
+      const slotIndex = Number(target.dataset.slot);
+      if (Number.isInteger(slotIndex) && window.confirm("Slot wirklich freigeben?")) {
+        network.sendAction({ type: "admin:kickPlayer", slotIndex });
+      }
+    }
+  });
+
   dom.adminControls.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLButtonElement)) return;
@@ -198,12 +209,17 @@ function renderPlayers(dom, data) {
       if (player.isTurn) classes.push("is-turn");
       if (player.isAnswering) classes.push("is-answering");
       if (!player.connected) classes.push("is-offline");
+      const canKick = data.client.role === "admin" && Boolean(player.sessionId);
+      const actionButton = canKick
+        ? `<button class="slot-action" data-action="slot-kick" data-slot="${player.slotIndex}">Slot räumen</button>`
+        : "";
       return `<div class="${classes.join(" ")}">
         <div class="video-feed" data-slot-video="${player.slotIndex}">
           <span class="video-placeholder">${player.name}</span>
         </div>
         <div class="name-tag">${player.name}</div>
         <div class="score">${player.score} Punkte</div>
+        ${actionButton}
       </div>`;
     })
     .join("");
