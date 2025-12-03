@@ -1,0 +1,343 @@
+:root {
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #f9f3ff;
+  background-color: #050013;
+  --purple-dark: #25113d;
+  --purple: #7f4dff;
+  --purple-light: #a782ff;
+  --green: #49ffb1;
+  --red: #ff4d7a;
+  --card-bg: rgba(255, 255, 255, 0.04);
+  --border: rgba(255, 255, 255, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, rgba(127, 77, 255, 0.35), transparent 60%),
+    #050013;
+  color: #f9f3ff;
+}
+
+#app {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  grid-template-rows: auto 1fr auto;
+  gap: 1rem;
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.admin-area {
+  grid-row: 1 / span 3;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.board-area {
+  grid-column: 2 / 3;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.players-area {
+  grid-column: 2 / 3;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.video-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+}
+
+.video-card.is-turn {
+  border-color: var(--purple-light);
+  box-shadow: 0 0 30px rgba(127, 77, 255, 0.6);
+}
+
+.video-card.is-answering {
+  border-color: var(--green);
+  box-shadow: 0 0 30px rgba(73, 255, 177, 0.7);
+}
+
+.video-card.is-offline {
+  opacity: 0.5;
+}
+
+.video-feed {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.video-feed video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  background: black;
+}
+
+.name-tag {
+  background: rgba(127, 77, 255, 0.25);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.score {
+  font-size: 0.9rem;
+  color: var(--purple-light);
+  text-align: center;
+}
+
+.admin-controls {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 1rem;
+}
+
+.admin-controls.is-disabled {
+  opacity: 0.5;
+}
+
+.admin-controls h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.controls-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.controls-grid button {
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: none;
+  background: var(--purple);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.controls-grid button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.controls-grid button.danger {
+  background: var(--red);
+}
+
+.board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.logo {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.turn-indicator {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.timer-chip {
+  background: rgba(127, 77, 255, 0.3);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-weight: 600;
+}
+
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.column-title {
+  text-align: center;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  color: var(--purple-light);
+}
+
+.cell {
+  width: 100%;
+  padding: 0.9rem 0;
+  border-radius: 14px;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.cell.available:hover {
+  transform: translateY(-3px);
+}
+
+.cell.used {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+.cell.active {
+  border: 2px solid var(--green);
+}
+
+.question-panel {
+  margin-top: 1.5rem;
+  border-radius: 18px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  padding: 1rem;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.question-value {
+  margin: 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.buzzer-panel {
+  grid-column: 2 / 3;
+  display: flex;
+  justify-content: center;
+}
+
+#buzzer-button {
+  padding: 1rem 2.5rem;
+  font-size: 1.2rem;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(90deg, var(--purple), var(--purple-light));
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(127, 77, 255, 0.4);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+#buzzer-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: scale(0.95);
+}
+
+.name-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 0, 19, 0.8);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+.name-form {
+  background: #12062c;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2rem;
+  width: min(420px, 90vw);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+.name-form input {
+  width: 100%;
+  padding: 0.8rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 1rem;
+  background: transparent;
+  color: white;
+}
+
+.name-form button {
+  width: 100%;
+  padding: 0.9rem;
+  border-radius: 12px;
+  border: none;
+  background: var(--purple);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toast {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  background: rgba(255, 77, 122, 0.15);
+  border: 1px solid rgba(255, 77, 122, 0.4);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  font-weight: 500;
+  z-index: 30;
+}
+
+@media (max-width: 1100px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+  .admin-area {
+    grid-row: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .players-area {
+    grid-column: auto;
+  }
+  .board-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
