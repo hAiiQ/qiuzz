@@ -65,7 +65,7 @@ export function initNetwork(store) {
         break;
       case "error":
         store.update((state) => {
-          state.ui.error = translateError(message.message);
+          state.ui.error = translateError(message.reason);
         });
         break;
       case "kicked":
@@ -101,7 +101,8 @@ export function initNetwork(store) {
         activeQuestion: payload.activeQuestion,
         timerSeconds: payload.timerSeconds,
         nextRoundReady: payload.nextRoundReady,
-        gameFinished: payload.gameFinished
+        gameFinished: payload.gameFinished,
+        lastVerdict: payload.lastVerdict ?? null
       };
       state.ui.adminAnswer = payload.activeQuestion?.answer
         ? {

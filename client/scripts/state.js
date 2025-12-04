@@ -41,7 +41,8 @@ export function initState() {
       activeQuestion: null,
       timerSeconds: 30,
       nextRoundReady: false,
-      gameFinished: false
+      gameFinished: false,
+      lastVerdict: null
     },
     ui: {
       showNamePrompt: !storedName,

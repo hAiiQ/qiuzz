@@ -27,7 +27,9 @@ export function createGameState() {
     currentRoundIndex: 0,
     playerSlots: Array.from({ length: MAX_PLAYERS }, () => null),
     turnSlotIndex: 0,
-    activeQuestion: null
+    activeQuestion: null,
+    lastVerdict: null,
+    lastVerdictToken: 0
   };
 }
 
@@ -145,6 +147,7 @@ export function handleAdminSelectQuestion(state, questionId) {
     return { ok: false, reason: "no-active-player" };
   }
 
+  state.lastVerdict = null;
   state.activeQuestion = {
     id: question.id,
     categoryId: category.id,
@@ -168,6 +171,7 @@ export function handleAdminMarkAnswer(state, verdict) {
   }
 
   if (verdict === "correct") {
+    recordVerdict(state, "correct");
     awardPoints(state, state.activeQuestion.currentResponderSlot, state.activeQuestion.value);
     finalizeQuestion(state);
     return { ok: true };
@@ -196,6 +200,8 @@ export function handleReset(state, options = {}) {
   state.currentRoundIndex = fresh.currentRoundIndex;
   state.turnSlotIndex = fresh.turnSlotIndex;
   state.activeQuestion = null;
+  state.lastVerdict = null;
+  state.lastVerdictToken = fresh.lastVerdictToken;
   const removedSessions = [];
 
   if (dropPlayers) {
@@ -363,7 +369,8 @@ export function serializeState(state, { includeAnswer = false } = {}) {
     activeQuestion,
     timerSeconds: activeQuestion?.secondsRemaining ?? TIMER_SECONDS,
     nextRoundReady: isRoundComplete(state) && state.currentRoundIndex + 1 < state.rounds.length,
-    gameFinished: isGameComplete(state)
+    gameFinished: isGameComplete(state),
+    lastVerdict: state.lastVerdict
   };
 }
 
@@ -429,6 +436,7 @@ function applyIncorrectAnswer(state, slotIndex) {
   if (slotIndex === null || slotIndex === undefined) {
     return;
   }
+  recordVerdict(state, "incorrect");
   const penalty = Math.floor(state.activeQuestion.value * HALF_PENALTY);
   deductPoints(state, slotIndex, penalty);
   state.activeQuestion.attemptedSlots.add(slotIndex);
@@ -495,4 +503,17 @@ function progressToNextRound(state) {
 
 function isGameComplete(state) {
   return state.currentRoundIndex === state.rounds.length - 1 && isRoundComplete(state);
+}
+
+function recordVerdict(state, verdict) {
+  if (!state.activeQuestion) {
+    return;
+  }
+  state.lastVerdictToken += 1;
+  state.lastVerdict = {
+    verdict,
+    prompt: state.activeQuestion.prompt,
+    value: state.activeQuestion.value,
+    token: state.lastVerdictToken
+  };
 }

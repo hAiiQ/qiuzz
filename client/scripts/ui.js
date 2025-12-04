@@ -1,3 +1,13 @@
+const VERDICT_FLASH_DURATION = 1000;
+const verdictFlashState = {
+  token: 0,
+  visible: false,
+  verdict: null,
+  timeoutId: null,
+  dom: null,
+  data: null
+};
+
 export function initUI({ appEl, state, network, camera }) {
   const dom = buildLayout(appEl, state.data.client.role);
   let adminWindow = null;
@@ -72,6 +82,7 @@ export function initUI({ appEl, state, network, camera }) {
 
   state.subscribe((data) => {
     renderBoard(dom, data, state.data.client.role);
+    renderQuestionOverlay(dom, data);
     renderPlayers(dom, data);
     renderAdminCard(dom, data);
     renderAdminControlsState(dom, data);
@@ -105,7 +116,6 @@ function buildLayout(appEl, role) {
               <span class="player-meta__score">Moderator</span>
             </div>
           </div>
-          <div class="name-tag" data-role="admin-name">Admin</div>
         </div>
         <div class="admin-controls" data-role="admin-controls">
           <h2>Admin Bedienung</h2>
@@ -128,7 +138,7 @@ function buildLayout(appEl, role) {
         </header>
         <div class="round-label" data-role="round-label">Runde 1 von 2</div>
         <div class="board-grid" data-role="board-grid"></div>
-        <div class="question-panel" data-role="question-panel">Wähle eine Frage um zu starten.</div>
+        <div class="question-overlay" data-role="question-overlay" hidden></div>
       </section>
       <section class="players-area" data-role="players"></section>
     </main>
@@ -145,7 +155,7 @@ function buildLayout(appEl, role) {
 
   return {
     boardGrid: appEl.querySelector('[data-role="board-grid"]'),
-    questionPanel: appEl.querySelector('[data-role="question-panel"]'),
+    questionOverlay: appEl.querySelector('[data-role="question-overlay"]'),
     playersArea: appEl.querySelector('[data-role="players"]'),
     turnIndicator: appEl.querySelector('[data-role="turn-indicator"]'),
     timerChip: appEl.querySelector('[data-role="timer"]'),
@@ -153,7 +163,6 @@ function buildLayout(appEl, role) {
     adminControls: appEl.querySelector('[data-role="admin-controls"]'),
     adminWindowButton: appEl.querySelector('[data-action="open-admin-window"]'),
     playerControls: appEl.querySelector('[data-role="player-controls"]'),
-    adminName: appEl.querySelector('[data-role="admin-name"]'),
     adminNameOverlay: appEl.querySelector('[data-role="admin-name-overlay"]'),
     adminCameraToggle: appEl.querySelector('[data-role="admin-camera-toggle"]'),
     buzzerButton: appEl.querySelector('#buzzer-button'),
@@ -339,17 +348,11 @@ function renderAdminWindowContent(targetWindow, data, network) {
   });
 }
 function renderAdminCard(dom, data) {
-  if (!dom.adminName) return;
   const admin = data.game.admin;
   const localName = data.client.role === "admin" && data.client.name ? data.client.name : null;
   const displayName = localName || admin?.name || "Admin";
   if (dom.adminNameOverlay) {
     dom.adminNameOverlay.textContent = displayName;
-  }
-  if (admin?.connected) {
-    dom.adminName.textContent = `${displayName} (Admin)`;
-  } else {
-    dom.adminName.textContent = `${displayName} (Admin offline)`;
   }
 }
 
@@ -379,23 +382,82 @@ function renderBoard(dom, data, role) {
       </div>`;
     })
     .join("");
+}
 
-  if (data.game.activeQuestion) {
+function renderQuestionOverlay(dom, data) {
+  const overlay = dom.questionOverlay;
+  if (!overlay) return;
+  verdictFlashState.dom = dom;
+  verdictFlashState.data = data;
+
+  const active = data.game.activeQuestion;
+  updateVerdictFlash(data.game.lastVerdict);
+  const verdictFlash = verdictFlashState.visible ? verdictFlashState.verdict : null;
+  const verdictClass = verdictFlash ? getVerdictClass(verdictFlash.verdict) : "";
+  overlay.dataset.verdict = verdictFlash?.verdict ?? "";
+  const verdictBadge = verdictFlash
+    ? `<span class="question-overlay__badge question-overlay__badge--${verdictFlash.verdict}">${getVerdictLabel(
+        verdictFlash.verdict
+      )}</span>`
+    : "";
+
+  if (active) {
     const statusLabel =
-      data.game.activeQuestion.status === "awaiting_buzz"
+      active.status === "awaiting_buzz"
         ? "Buzzern erlaubt"
-        : "Antwort wird geprüft";
-    dom.questionPanel.innerHTML = `
-      <p class="question-value">${data.game.activeQuestion.value} Punkte · ${statusLabel}</p>
-      <h3>${data.game.activeQuestion.prompt}</h3>
+        : active.status === "answering"
+          ? "Antwort wird geprüft"
+          : "Frage aktiv";
+    const classes = ["question-overlay__card"];
+    if (verdictClass) {
+      classes.push(verdictClass);
+    }
+    overlay.hidden = false;
+    overlay.classList.add("is-visible");
+    overlay.innerHTML = `
+      <div class="${classes.join(" ")}">
+        <p class="question-overlay__value">${active.value} Punkte · ${statusLabel}</p>
+        ${verdictBadge}
+        <h3 class="question-overlay__prompt">${escapeHtml(active.prompt)}</h3>
+      </div>
     `;
-  } else if (data.game.gameFinished) {
-    dom.questionPanel.textContent = "Spiel beendet. Admin kann neu starten.";
-  } else if (data.game.nextRoundReady) {
-    dom.questionPanel.textContent = "Runde erledigt! Admin startet automatisch die nächste Runde.";
-  } else {
-    dom.questionPanel.textContent = "Wähle eine Frage um zu starten.";
+    return;
   }
+
+  if (verdictFlash) {
+    const classes = ["question-overlay__card"];
+    if (verdictClass) {
+      classes.push(verdictClass);
+    }
+    overlay.hidden = false;
+    overlay.classList.add("is-visible");
+    overlay.innerHTML = `
+      <div class="${classes.join(" ")}">
+        <p class="question-overlay__value">${verdictFlash.value} Punkte</p>
+        ${verdictBadge}
+        <h3 class="question-overlay__prompt">${escapeHtml(verdictFlash.prompt)}</h3>
+      </div>
+    `;
+    return;
+  }
+
+  if (data.game.gameFinished || data.game.nextRoundReady) {
+    const message = data.game.gameFinished
+      ? "Spiel beendet. Admin kann neu starten."
+      : "Runde erledigt! Admin startet gleich die nächste Runde.";
+    overlay.hidden = false;
+    overlay.classList.add("is-visible");
+    overlay.innerHTML = `
+      <div class="question-overlay__card">
+        <h3 class="question-overlay__prompt">${message}</h3>
+      </div>
+    `;
+    return;
+  }
+
+  overlay.hidden = true;
+  overlay.classList.remove("is-visible");
+  overlay.innerHTML = "";
 }
 
 function renderPlayers(dom, data) {
@@ -499,6 +561,51 @@ function renderNameModal(dom, data) {
   if (shouldShow) {
     dom.nameInput.value = data.client.name || "";
   }
+}
+
+function updateVerdictFlash(verdict) {
+  if (!verdict) {
+    stopVerdictFlash();
+    return;
+  }
+  if (verdict.token === verdictFlashState.token) {
+    return;
+  }
+  startVerdictFlash(verdict);
+}
+
+function startVerdictFlash(verdict) {
+  if (verdictFlashState.timeoutId) {
+    window.clearTimeout(verdictFlashState.timeoutId);
+  }
+  verdictFlashState.token = verdict.token;
+  verdictFlashState.verdict = verdict;
+  verdictFlashState.visible = true;
+  verdictFlashState.timeoutId = window.setTimeout(() => {
+    verdictFlashState.visible = false;
+    verdictFlashState.verdict = null;
+    verdictFlashState.timeoutId = null;
+    if (verdictFlashState.dom && verdictFlashState.data) {
+      renderQuestionOverlay(verdictFlashState.dom, verdictFlashState.data);
+    }
+  }, VERDICT_FLASH_DURATION);
+}
+
+function stopVerdictFlash() {
+  if (verdictFlashState.timeoutId) {
+    window.clearTimeout(verdictFlashState.timeoutId);
+    verdictFlashState.timeoutId = null;
+  }
+  verdictFlashState.visible = false;
+  verdictFlashState.verdict = null;
+}
+
+function getVerdictClass(verdict) {
+  return verdict === "correct" ? "question-overlay__card--correct" : "question-overlay__card--incorrect";
+}
+
+function getVerdictLabel(verdict) {
+  return verdict === "correct" ? "Richtige Antwort" : "Falsche Antwort";
 }
 
 function escapeHtml(text) {
