@@ -1,4 +1,4 @@
-const VERDICT_FLASH_DURATION = 1000;
+const VERDICT_FLASH_DURATION = 3000;
 const verdictFlashState = {
   token: 0,
   visible: false,
@@ -6,6 +6,9 @@ const verdictFlashState = {
   timeoutId: null,
   dom: null,
   data: null
+};
+const playersRenderState = {
+  cards: new Map()
 };
 
 export function initUI({ appEl, state, network, camera }) {
@@ -26,16 +29,18 @@ export function initUI({ appEl, state, network, camera }) {
     network.sendBuzzer();
   });
 
-  dom.boardGrid.addEventListener("click", (event) => {
-    const target = event.target;
-    if (
-      target instanceof HTMLButtonElement &&
-      target.dataset.questionId &&
-      state.data.client.role === "admin"
-    ) {
-      network.sendAction({ type: "admin:selectQuestion", questionId: target.dataset.questionId });
-    }
-  });
+  if (dom.buzzerPad) {
+    dom.buzzerPad.addEventListener("click", (event) => {
+      if (dom.buzzerButton.disabled) {
+        return;
+      }
+      if (event.target instanceof HTMLElement && event.target.closest("button")) {
+        return;
+      }
+      dom.buzzerButton.focus();
+      dom.buzzerButton.click();
+    });
+  }
 
   dom.playersArea.addEventListener("click", (event) => {
     const button = event.target instanceof HTMLElement ? event.target.closest("button") : null;
@@ -47,19 +52,25 @@ export function initUI({ appEl, state, network, camera }) {
       }
       return;
     }
-    if (
-      button.dataset.action === "toggle-camera" &&
-      button.dataset.sessionId === state.data.client.sessionId
-    ) {
-      camera?.toggleCamera();
-    }
   });
 
-  if (dom.adminCameraToggle && camera?.toggleCamera) {
-    dom.adminCameraToggle.addEventListener("click", () => {
-      if (state.data.client.role === "admin") {
-        camera.toggleCamera();
+  if (dom.boardGrid) {
+    dom.boardGrid.addEventListener("click", (event) => {
+      if (state.data.client.role !== "admin") {
+        return;
       }
+      const button =
+        event.target instanceof HTMLElement
+          ? event.target.closest("button[data-question-id]")
+          : null;
+      if (!(button instanceof HTMLButtonElement) || button.disabled) {
+        return;
+      }
+      const questionId = button.getAttribute("data-question-id");
+      if (!questionId) {
+        return;
+      }
+      network.sendAction({ type: "admin:selectQuestion", questionId });
     });
   }
 
@@ -87,7 +98,6 @@ export function initUI({ appEl, state, network, camera }) {
     renderAdminCard(dom, data);
     renderAdminControlsState(dom, data);
     renderBuzzer(dom, data);
-    renderCameraToggle(dom, data);
     renderNameModal(dom, data);
     adminWindow = syncAdminWindow(data, state.data.client.role, adminWindow, network);
     renderErrors(dom, data);
@@ -101,15 +111,6 @@ function buildLayout(appEl, role) {
       <section class="admin-area">
         <div class="video-card admin-card player-card">
           <div class="video-feed" data-role="admin-video">
-            ${isAdmin ? `
-            <button
-              type="button"
-              class="camera-pill"
-              data-role="admin-camera-toggle"
-              aria-label="Kamera umschalten"
-            >
-              <span aria-hidden="true">📷</span>
-            </button>` : ""}
             <span class="video-placeholder">Admin Kamera</span>
             <div class="player-meta">
               <span class="player-meta__name" data-role="admin-name-overlay">Admin</span>
@@ -125,9 +126,13 @@ function buildLayout(appEl, role) {
           </div>
         </div>
         <div class="player-controls" data-role="player-controls" hidden>
-          <h2>Buzzern</h2>
-          <p class="player-controls__hint">Sobald der Moderator buzzern freigibt, kannst du hier drücken.</p>
-          <button id="buzzer-button" disabled>Buzzern</button>
+          <div class="neon-buzzer" data-role="buzzer-pad">
+            <button id="buzzer-button" type="button" aria-label="Buzzern">
+              <span class="neon-buzzer__text">BUZZER</span>
+            </button>
+            <div class="neon-buzzer__halo"></div>
+            <div class="neon-buzzer__label" data-role="buzzer-status">Warte auf Freigabe...</div>
+          </div>
         </div>
       </section>
       <section class="board-area">
@@ -164,8 +169,9 @@ function buildLayout(appEl, role) {
     adminWindowButton: appEl.querySelector('[data-action="open-admin-window"]'),
     playerControls: appEl.querySelector('[data-role="player-controls"]'),
     adminNameOverlay: appEl.querySelector('[data-role="admin-name-overlay"]'),
-    adminCameraToggle: appEl.querySelector('[data-role="admin-camera-toggle"]'),
     buzzerButton: appEl.querySelector('#buzzer-button'),
+    buzzerPad: appEl.querySelector('[data-role="buzzer-pad"]'),
+    buzzerStatus: appEl.querySelector('[data-role="buzzer-status"]'),
     nameModal: appEl.querySelector('[data-role="name-modal"]'),
     nameForm: appEl.querySelector('.name-form'),
     nameInput: appEl.querySelector('.name-form input'),
@@ -400,6 +406,10 @@ function renderQuestionOverlay(dom, data) {
         verdictFlash.verdict
       )}</span>`
     : "";
+  const shouldRevealAnswer = verdictFlash && ["correct", "closed"].includes(verdictFlash.verdict);
+  const verdictAnswer = shouldRevealAnswer && verdictFlash?.answer
+    ? `<p class="question-overlay__answer"><span>Antwort:</span> ${escapeHtml(verdictFlash.answer)}</p>`
+    : "";
 
   if (active) {
     const statusLabel =
@@ -419,6 +429,7 @@ function renderQuestionOverlay(dom, data) {
         <p class="question-overlay__value">${active.value} Punkte · ${statusLabel}</p>
         ${verdictBadge}
         <h3 class="question-overlay__prompt">${escapeHtml(active.prompt)}</h3>
+        ${verdictAnswer}
       </div>
     `;
     return;
@@ -436,6 +447,7 @@ function renderQuestionOverlay(dom, data) {
         <p class="question-overlay__value">${verdictFlash.value} Punkte</p>
         ${verdictBadge}
         <h3 class="question-overlay__prompt">${escapeHtml(verdictFlash.prompt)}</h3>
+        ${verdictAnswer}
       </div>
     `;
     return;
@@ -462,41 +474,24 @@ function renderQuestionOverlay(dom, data) {
 
 function renderPlayers(dom, data) {
   const clientSessionId = data.client.sessionId;
-  dom.playersArea.innerHTML = data.game.players
-    .map((player) => {
-      const classes = ["video-card", "player-card"];
-      if (player.isTurn) classes.push("is-turn");
-      if (player.isAnswering) classes.push("is-answering");
-      if (!player.connected) classes.push("is-offline");
-      const canKick = data.client.role === "admin" && Boolean(player.sessionId);
-      const hasSession = Boolean(player.sessionId) && Boolean(clientSessionId);
-      const isLocal = hasSession && player.sessionId === clientSessionId;
-      let cameraButton = "";
-      if (Number.isInteger(player.slotIndex) && isLocal) {
-        cameraButton = `<button class="camera-pill${data.ui.cameraEnabled ? "" : " is-off"}" type="button" data-action="toggle-camera" data-camera-indicator="local" data-session-id="${player.sessionId}" data-slot="${player.slotIndex}" aria-label="Kamera ${
-          data.ui.cameraEnabled ? "deaktivieren" : "aktivieren"
-        }">
-            <span aria-hidden="true">📷</span>
-          </button>`;
-      }
-      const kickButton = canKick
-        ? `<button class="slot-pill" type="button" data-action="slot-kick" data-slot="${player.slotIndex}" aria-label="Slot räumen">
-            <span aria-hidden="true">✖</span>
-          </button>`
-        : "";
-      return `<div class="${classes.join(" ")}">
-        <div class="video-feed" data-slot-video="${player.slotIndex}">
-          <span class="video-placeholder">${player.name}</span>
-          ${cameraButton}
-          ${kickButton}
-          <div class="player-meta">
-            <span class="player-meta__name">${player.name}</span>
-            <span class="player-meta__score">${player.score} Punkte</span>
-          </div>
-        </div>
-      </div>`;
-    })
-    .join("");
+  const seenSlots = new Set();
+
+  data.game.players.forEach((player, index) => {
+    const cacheEntry = ensurePlayerCard(player.slotIndex, dom.playersArea);
+    seenSlots.add(player.slotIndex);
+    updatePlayerCard(cacheEntry, player, data, clientSessionId);
+    const referenceNode = dom.playersArea.children[index];
+    if (referenceNode !== cacheEntry.card) {
+      dom.playersArea.insertBefore(cacheEntry.card, referenceNode || null);
+    }
+  });
+
+  playersRenderState.cards.forEach((entry, slotIndex) => {
+    if (!seenSlots.has(slotIndex)) {
+      entry.card.remove();
+      playersRenderState.cards.delete(slotIndex);
+    }
+  });
 }
 
 function renderAdminControlsState(dom, data) {
@@ -535,21 +530,27 @@ function renderBuzzer(dom, data) {
     active.buzzableSlots?.includes(client.slotIndex);
 
   dom.buzzerButton.disabled = !eligible;
-}
-
-function renderCameraToggle(dom, data) {
-  const enabled = data.ui.cameraEnabled;
-  if (dom.adminCameraToggle) {
-    dom.adminCameraToggle.classList.toggle("is-off", !enabled);
-    dom.adminCameraToggle.setAttribute("aria-pressed", String(!enabled));
-    dom.adminCameraToggle.title = enabled ? "Kamera deaktivieren" : "Kamera aktivieren";
+  if (dom.buzzerPad) {
+    dom.buzzerPad.classList.toggle("is-armed", eligible);
+    dom.buzzerPad.classList.toggle("is-disabled", !active);
   }
-  const localButtons = dom.playersArea?.querySelectorAll('[data-camera-indicator="local"]') ?? [];
-  localButtons.forEach((button) => {
-    button.classList.toggle("is-off", !enabled);
-    button.setAttribute("aria-pressed", String(!enabled));
-    button.title = enabled ? "Kamera deaktivieren" : "Kamera aktivieren";
-  });
+  if (dom.buzzerStatus) {
+    let text = "Nur der Admin kann buzzern.";
+    if (client.role === "player") {
+      if (!active) {
+        text = "Warte auf nächste Frage...";
+      } else if (eligible) {
+        text = "Jetzt buzzern!";
+      } else if (active.status === "answering") {
+        text = "Antwort läuft...";
+      } else if (active.status === "awaiting_buzz") {
+        text = "Nicht freigegeben.";
+      } else {
+        text = "Warte auf Moderator...";
+      }
+    }
+    dom.buzzerStatus.textContent = text;
+  }
 }
 
 function renderNameModal(dom, data) {
@@ -601,11 +602,139 @@ function stopVerdictFlash() {
 }
 
 function getVerdictClass(verdict) {
-  return verdict === "correct" ? "question-overlay__card--correct" : "question-overlay__card--incorrect";
+  if (verdict === "correct") {
+    return "question-overlay__card--correct";
+  }
+  if (verdict === "incorrect") {
+    return "question-overlay__card--incorrect";
+  }
+  return "question-overlay__card--closed";
 }
 
 function getVerdictLabel(verdict) {
-  return verdict === "correct" ? "Richtige Antwort" : "Falsche Antwort";
+  if (verdict === "correct") {
+    return "Richtige Antwort";
+  }
+  if (verdict === "incorrect") {
+    return "Falsche Antwort";
+  }
+  return "Frage geschlossen";
+}
+
+function ensurePlayerCard(slotIndex, parent) {
+  if (!playersRenderState.cards.has(slotIndex)) {
+    const entry = createPlayerCard(slotIndex);
+    playersRenderState.cards.set(slotIndex, entry);
+    parent.appendChild(entry.card);
+  }
+  return playersRenderState.cards.get(slotIndex);
+}
+
+function createPlayerCard(slotIndex) {
+  const card = document.createElement("div");
+  card.className = "video-card player-card";
+  card.dataset.slotIndex = String(slotIndex);
+
+  const videoFeed = document.createElement("div");
+  videoFeed.className = "video-feed";
+  videoFeed.dataset.slotVideo = String(slotIndex);
+
+  const placeholder = document.createElement("span");
+  placeholder.className = "video-placeholder";
+  videoFeed.appendChild(placeholder);
+
+  const kickButton = document.createElement("button");
+  kickButton.type = "button";
+  kickButton.className = "slot-pill";
+  kickButton.dataset.action = "slot-kick";
+  kickButton.hidden = true;
+  kickButton.innerHTML = '<span aria-hidden="true">✖</span>';
+  videoFeed.appendChild(kickButton);
+
+  const meta = document.createElement("div");
+  meta.className = "player-meta";
+  const nameEl = document.createElement("span");
+  nameEl.className = "player-meta__name";
+  meta.appendChild(nameEl);
+  const scoreEl = document.createElement("span");
+  scoreEl.className = "player-meta__score";
+  meta.appendChild(scoreEl);
+  videoFeed.appendChild(meta);
+
+  card.appendChild(videoFeed);
+
+  return {
+    card,
+    elements: { videoFeed, placeholder, kickButton, nameEl, scoreEl },
+    state: {
+      slotIndex,
+      name: "",
+      score: null,
+      isTurn: false,
+      isAnswering: false,
+      connected: false,
+      canKick: false
+    }
+  };
+}
+
+function updatePlayerCard(entry, player, data, clientSessionId) {
+  const { card, elements } = entry;
+  const state = entry.state || (entry.state = {});
+
+  if (state.slotIndex !== player.slotIndex) {
+    state.slotIndex = player.slotIndex;
+    card.dataset.slotIndex = String(player.slotIndex);
+    elements.videoFeed.dataset.slotVideo = String(player.slotIndex);
+    if (state.canKick && Number.isInteger(player.slotIndex)) {
+      elements.kickButton.dataset.slot = player.slotIndex;
+    }
+  }
+
+  if (state.name !== player.name) {
+    state.name = player.name;
+    elements.placeholder.textContent = player.name;
+    elements.nameEl.textContent = player.name;
+  }
+
+  if (state.score !== player.score) {
+    state.score = player.score;
+    elements.scoreEl.textContent = `${player.score} Punkte`;
+  }
+
+  const respondingSlot = data.game.activeQuestion?.respondingSlot;
+  const hasResponder = typeof respondingSlot === "number";
+  const isAnswering = hasResponder ? player.slotIndex === respondingSlot : Boolean(player.isAnswering);
+  if (state.isAnswering !== isAnswering) {
+    state.isAnswering = isAnswering;
+    card.classList.toggle("is-answering", isAnswering);
+  }
+  const isTurn = !isAnswering && Boolean(player.isTurn) && !hasResponder;
+  if (state.isTurn !== isTurn) {
+    state.isTurn = isTurn;
+    card.classList.toggle("is-turn", isTurn);
+  }
+
+  const connected = Boolean(player.connected);
+  if (state.connected !== connected) {
+    state.connected = connected;
+    card.classList.toggle("is-offline", !connected);
+  }
+
+  const canKick = data.client.role === "admin" && Boolean(player.sessionId);
+  if (state.canKick !== canKick) {
+    state.canKick = canKick;
+    if (canKick && Number.isInteger(player.slotIndex)) {
+      elements.kickButton.hidden = false;
+      elements.kickButton.dataset.slot = player.slotIndex;
+      elements.kickButton.setAttribute("aria-label", "Slot räumen");
+    } else {
+      elements.kickButton.hidden = true;
+      elements.kickButton.removeAttribute("data-slot");
+    }
+  } else if (canKick && Number.isInteger(player.slotIndex)) {
+    elements.kickButton.dataset.slot = player.slotIndex;
+  }
 }
 
 function escapeHtml(text) {

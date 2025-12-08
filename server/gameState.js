@@ -27,6 +27,7 @@ export function createGameState() {
     currentRoundIndex: 0,
     playerSlots: Array.from({ length: MAX_PLAYERS }, () => null),
     turnSlotIndex: 0,
+    turnLockSlot: null,
     activeQuestion: null,
     lastVerdict: null,
     lastVerdictToken: 0
@@ -62,11 +63,32 @@ export function handleJoin(state, { sessionId, role, name }) {
     const player = state.playerSlots[existingSlot];
     player.name = name || player.name;
     player.connected = true;
+    if (state.turnLockSlot === existingSlot) {
+      state.turnLockSlot = null;
+    }
     return {
       accepted: true,
       role: "player",
       sessionId,
       slotIndex: existingSlot,
+      player
+    };
+  }
+
+  const matchedSlot = findSlotByName(state, name);
+  if (matchedSlot !== null) {
+    const player = state.playerSlots[matchedSlot];
+    player.id = sessionId;
+    player.name = name || player.name;
+    player.connected = true;
+    if (state.turnLockSlot === matchedSlot) {
+      state.turnLockSlot = null;
+    }
+    return {
+      accepted: true,
+      role: "player",
+      sessionId,
+      slotIndex: matchedSlot,
       player
     };
   }
@@ -106,16 +128,10 @@ export function handleDisconnect(state, sessionId) {
     const player = state.playerSlots[slot];
     if (player) {
       player.connected = false;
+      if (slot === state.turnSlotIndex) {
+        state.turnLockSlot = slot;
+      }
     }
-  }
-
-  if (
-    state.activeQuestion &&
-    state.activeQuestion.currentResponderSlot !== null &&
-    state.playerSlots[state.activeQuestion.currentResponderSlot]?.id === sessionId
-  ) {
-    // Treat disconnect as incorrect answer
-    applyIncorrectAnswer(state, state.activeQuestion.currentResponderSlot);
   }
 
   ensureTurnIndexValid(state);
@@ -189,6 +205,7 @@ export function handleAdminCloseQuestion(state) {
   if (!state.activeQuestion) {
     return { ok: false };
   }
+  recordVerdict(state, "closed");
   finalizeQuestion(state, { advanceTurn: true, markAsked: true });
   return { ok: true };
 }
@@ -199,6 +216,7 @@ export function handleReset(state, options = {}) {
   state.questionStatus = fresh.questionStatus;
   state.currentRoundIndex = fresh.currentRoundIndex;
   state.turnSlotIndex = fresh.turnSlotIndex;
+  state.turnLockSlot = null;
   state.activeQuestion = null;
   state.lastVerdict = null;
   state.lastVerdictToken = fresh.lastVerdictToken;
@@ -246,6 +264,9 @@ export function handleAdminRemovePlayer(state, slotIndex) {
   }
 
   state.playerSlots[slotIndex] = null;
+  if (state.turnLockSlot === slotIndex) {
+    state.turnLockSlot = null;
+  }
   if (state.turnSlotIndex === slotIndex) {
     advanceTurnSlot(state);
   }
@@ -391,6 +412,20 @@ function findSlotById(state, sessionId) {
   return slotIndex === -1 ? null : slotIndex;
 }
 
+function findSlotByName(state, name) {
+  if (!name) {
+    return null;
+  }
+  const target = name.trim().toLowerCase();
+  if (!target) {
+    return null;
+  }
+  const slotIndex = state.playerSlots.findIndex(
+    (player) => player && !player.connected && player.name?.trim().toLowerCase() === target
+  );
+  return slotIndex === -1 ? null : slotIndex;
+}
+
 function getCurrentTurnSlot(state) {
   ensureTurnIndexValid(state);
   const player = state.playerSlots[state.turnSlotIndex];
@@ -398,7 +433,15 @@ function getCurrentTurnSlot(state) {
 }
 
 function ensureTurnIndexValid(state) {
-  if (!state.playerSlots[state.turnSlotIndex]?.connected) {
+  const currentPlayer = state.playerSlots[state.turnSlotIndex];
+  if (state.turnLockSlot === state.turnSlotIndex) {
+    if (!currentPlayer) {
+      state.turnLockSlot = null;
+    } else {
+      return;
+    }
+  }
+  if (!currentPlayer?.connected) {
     const next = findNextConnectedSlot(state, state.turnSlotIndex);
     if (next !== null) {
       state.turnSlotIndex = next;
@@ -442,6 +485,7 @@ function applyIncorrectAnswer(state, slotIndex) {
   state.activeQuestion.attemptedSlots.add(slotIndex);
   const remainingSlots = availableBuzzers(state);
   if (remainingSlots.length === 0) {
+    recordVerdict(state, "closed");
     finalizeQuestion(state);
     return;
   }
@@ -480,6 +524,7 @@ function finalizeQuestion(state, options = { advanceTurn: true, markAsked: true 
 }
 
 function advanceTurnSlot(state) {
+  state.turnLockSlot = null;
   const next = findNextConnectedSlot(state, state.turnSlotIndex + 1);
   if (next !== null) {
     state.turnSlotIndex = next;
@@ -514,6 +559,7 @@ function recordVerdict(state, verdict) {
     verdict,
     prompt: state.activeQuestion.prompt,
     value: state.activeQuestion.value,
+    answer: state.activeQuestion.answer,
     token: state.lastVerdictToken
   };
 }
