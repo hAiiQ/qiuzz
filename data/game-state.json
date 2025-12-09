@@ -1,183 +1,163 @@
 {
   "questionStatus": {
-    "songs-r1-100": {
-      "asked": true
-    },
-    "songs-r1-200": {
+    "songs-round1-100": {
       "asked": false
     },
-    "songs-r1-300": {
+    "songs-round1-200": {
       "asked": false
     },
-    "songs-r1-400": {
+    "songs-round1-300": {
       "asked": false
     },
-    "songs-r1-500": {
+    "songs-round1-400": {
       "asked": false
     },
-    "question-r1-100": {
-      "asked": true
-    },
-    "question-r1-200": {
+    "songs-round1-500": {
       "asked": false
     },
-    "question-r1-300": {
+    "question-round1-100": {
       "asked": false
     },
-    "question-r1-400": {
+    "question-round1-200": {
       "asked": false
     },
-    "question-r1-500": {
+    "question-round1-300": {
       "asked": false
     },
-    "general-r1-100": {
-      "asked": true
-    },
-    "general-r1-200": {
+    "question-round1-400": {
       "asked": false
     },
-    "general-r1-300": {
+    "question-round1-500": {
       "asked": false
     },
-    "general-r1-400": {
+    "general-round1-100": {
       "asked": false
     },
-    "general-r1-500": {
-      "asked": true
-    },
-    "numbers-r1-100": {
-      "asked": true
-    },
-    "numbers-r1-200": {
+    "general-round1-200": {
       "asked": false
     },
-    "numbers-r1-300": {
+    "general-round1-300": {
       "asked": false
     },
-    "numbers-r1-400": {
+    "general-round1-400": {
       "asked": false
     },
-    "numbers-r1-500": {
+    "general-round1-500": {
       "asked": false
     },
-    "flags-r1-100": {
+    "numbers-round1-100": {
       "asked": false
     },
-    "flags-r1-200": {
+    "numbers-round1-200": {
       "asked": false
     },
-    "flags-r1-300": {
+    "numbers-round1-300": {
       "asked": false
     },
-    "flags-r1-400": {
+    "numbers-round1-400": {
       "asked": false
     },
-    "flags-r1-500": {
+    "numbers-round1-500": {
       "asked": false
     },
-    "songs-r2-200": {
+    "flags-round1-100": {
       "asked": false
     },
-    "songs-r2-400": {
+    "flags-round1-200": {
       "asked": false
     },
-    "songs-r2-600": {
+    "flags-round1-300": {
       "asked": false
     },
-    "songs-r2-800": {
+    "flags-round1-400": {
       "asked": false
     },
-    "songs-r2-1000": {
+    "flags-round1-500": {
       "asked": false
     },
-    "question-r2-200": {
+    "songs-round2-200": {
       "asked": false
     },
-    "question-r2-400": {
+    "songs-round2-400": {
       "asked": false
     },
-    "question-r2-600": {
+    "songs-round2-600": {
       "asked": false
     },
-    "question-r2-800": {
+    "songs-round2-800": {
       "asked": false
     },
-    "question-r2-1000": {
+    "songs-round2-1000": {
       "asked": false
     },
-    "general-r2-200": {
+    "question-round2-200": {
       "asked": false
     },
-    "general-r2-400": {
+    "question-round2-400": {
       "asked": false
     },
-    "general-r2-600": {
+    "question-round2-600": {
       "asked": false
     },
-    "general-r2-800": {
+    "question-round2-800": {
       "asked": false
     },
-    "general-r2-1000": {
+    "question-round2-1000": {
       "asked": false
     },
-    "numbers-r2-200": {
+    "general-round2-200": {
       "asked": false
     },
-    "numbers-r2-400": {
+    "general-round2-400": {
       "asked": false
     },
-    "numbers-r2-600": {
+    "general-round2-600": {
       "asked": false
     },
-    "numbers-r2-800": {
+    "general-round2-800": {
       "asked": false
     },
-    "numbers-r2-1000": {
+    "general-round2-1000": {
       "asked": false
     },
-    "flags-r2-200": {
+    "numbers-round2-200": {
       "asked": false
     },
-    "flags-r2-400": {
+    "numbers-round2-400": {
       "asked": false
     },
-    "flags-r2-600": {
+    "numbers-round2-600": {
       "asked": false
     },
-    "flags-r2-800": {
+    "numbers-round2-800": {
       "asked": false
     },
-    "flags-r2-1000": {
+    "numbers-round2-1000": {
+      "asked": false
+    },
+    "flags-round2-200": {
+      "asked": false
+    },
+    "flags-round2-400": {
+      "asked": false
+    },
+    "flags-round2-600": {
+      "asked": false
+    },
+    "flags-round2-800": {
+      "asked": false
+    },
+    "flags-round2-1000": {
       "asked": false
     }
   },
   "currentRoundIndex": 0,
-  "turnSlotIndex": 1,
+  "turnSlotIndex": 0,
   "playerSlots": [
-    {
-      "id": "afaed457-7fb6-4579-bbe8-74b434fcba91",
-      "name": "test1",
-      "score": -300,
-      "slotIndex": 0
-    },
-    {
-      "id": "d96395d5-f49d-4e3e-8c19-bbdfbad5d9bb",
-      "name": "test2",
-      "score": -200,
-      "slotIndex": 1
-    },
-    {
-      "id": "d6885708-835f-412d-934e-fc09aff3d59d",
-      "name": "test3",
-      "score": 450,
-      "slotIndex": 2
-    },
-    {
-      "id": "28b2f9ff-c688-4f14-aa0a-9a8147a19dd2",
-      "name": "test4",
-      "score": -50,
-      "slotIndex": 3
-    }
+    null,
+    null,
+    null,
+    null
   ],
   "adminProfile": {
     "id": null,

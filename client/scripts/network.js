@@ -2,24 +2,47 @@ import { SESSION_STORAGE_KEY } from "./state.js";
 
 export function initNetwork(store) {
   let socket = null;
+  let desiredName = "";
+  let shouldReconnect = false;
+  let reconnectTimeout = null;
+  let reconnectDelay = 2000;
+  const MAX_RECONNECT_DELAY = 15000;
+  let closingForReconnect = false;
   const wsUrl = `${window.location.origin.replace(/^http/, "ws")}/ws`;
   const messageHandlers = new Map();
 
   function connect(name) {
-    cleanupSocket();
+    desiredName = name;
+    shouldReconnect = true;
+    reconnectDelay = 2000;
+    window.clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
+    store.persistName(name);
+    openSocket();
+  }
+
+  function openSocket() {
+    if (!desiredName) {
+      return;
+    }
+    if (socket && socket.readyState <= 1) {
+      closingForReconnect = true;
+      socket.close();
+    }
     store.update((state) => {
       state.client.connectionStatus = "connecting";
-      state.client.name = name;
+      state.client.name = desiredName;
       state.ui.showNamePrompt = false;
       state.ui.error = null;
     });
-    store.persistName(name);
     socket = new WebSocket(wsUrl);
     socket.addEventListener("open", () => {
+      closingForReconnect = false;
+      reconnectDelay = 2000;
       send({
         type: "join",
         role: store.data.client.role,
-        name,
+        name: desiredName,
         sessionId: store.data.client.sessionId
       });
     });
@@ -28,10 +51,15 @@ export function initNetwork(store) {
       handleMessage(payload);
     });
     socket.addEventListener("close", () => {
+      if (closingForReconnect) {
+        closingForReconnect = false;
+        return;
+      }
       store.update((state) => {
         state.client.connectionStatus = "disconnected";
         state.client.joined = false;
       });
+      scheduleReconnect();
     });
     socket.addEventListener("error", () => {
       store.update((state) => {
@@ -40,10 +68,15 @@ export function initNetwork(store) {
     });
   }
 
-  function cleanupSocket() {
-    if (socket && socket.readyState <= 1) {
-      socket.close();
+  function scheduleReconnect() {
+    if (!shouldReconnect || reconnectTimeout) {
+      return;
     }
+    reconnectTimeout = window.setTimeout(() => {
+      reconnectTimeout = null;
+      openSocket();
+      reconnectDelay = Math.min(MAX_RECONNECT_DELAY, reconnectDelay * 1.5);
+    }, reconnectDelay);
   }
 
   function handleMessage(message) {
@@ -70,7 +103,11 @@ export function initNetwork(store) {
         break;
       case "kicked":
         store.update((state) => {
-          state.client.joined = false;
+        shouldReconnect = false;
+        desiredName = "";
+        window.clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+        cleanupSocket();
           state.client.slotIndex = null;
           state.client.connectionStatus = "disconnected";
           state.ui.showNamePrompt = true;
@@ -79,10 +116,11 @@ export function initNetwork(store) {
             : "Der Admin hat dich entfernt.";
         });
         cleanupSocket();
-        break;
-      default:
-        if (!emitMessage(message.type, message)) {
-          console.warn("Unknown message", message);
+        function cleanupSocket() {
+          if (socket && socket.readyState <= 1) {
+            socket.close();
+          }
+          socket = null;
         }
         return;
     }
