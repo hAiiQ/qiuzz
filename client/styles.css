@@ -425,6 +425,16 @@ body {
   margin-bottom: 1rem;
 }
 
+.question-overlay__verdict-slot {
+  min-height: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.question-overlay__verdict-slot:empty {
+  display: none;
+}
+
 .question-media {
   margin: 1rem auto;
   display: flex;

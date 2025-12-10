@@ -8,6 +8,25 @@ const verdictFlashState = {
   dom: null,
   data: null
 };
+const overlayRenderState = {
+  mode: "hidden",
+  activeQuestionId: null,
+  verdictToken: null,
+  timerValue: null,
+  valueText: null,
+  verdictBadge: null,
+  answerHtml: null,
+  mediaMarkup: null,
+  promptMarkup: null,
+  cardVerdictClass: null,
+  timerEl: null,
+  metaEl: null,
+  verdictSlot: null,
+  answerSlot: null,
+  mediaSlot: null,
+  promptSlot: null,
+  cardEl: null
+};
 const playersRenderState = {
   cards: new Map()
 };
@@ -538,24 +557,51 @@ function renderQuestionOverlay(dom, data) {
         : active.status === "answering"
           ? "Antwort wird geprüft"
           : "Frage aktiv";
-    const classes = ["question-overlay__card"];
-    if (verdictClass) {
-      classes.push(verdictClass);
-    }
+    const shouldRerender =
+      overlayRenderState.mode !== "active" ||
+      overlayRenderState.activeQuestionId !== active.id ||
+      overlayRenderState.verdictToken !== (verdictFlash?.token ?? null);
+
     overlay.hidden = false;
     overlay.classList.add("is-visible");
-    overlay.innerHTML = `
-      <div class="timer-chip timer-chip--overlay">${overlayTimerValue}s</div>
-      <div class="${classes.join(" ")}">
-        <p class="question-overlay__value">${active.value} Punkte · ${statusLabel}</p>
-        ${verdictBadge}
-        ${activeImageMarkup}
-        ${activePromptMarkup}
-        ${verdictAnswer}
-      </div>
-    `;
+
+    if (shouldRerender) {
+      overlay.innerHTML = buildOverlayMarkup({
+        showTimer: true,
+        timerValue: overlayTimerValue,
+        classes: ["question-overlay__card"],
+        valueText: `${active.value} Punkte · ${statusLabel}`,
+        verdictBadge,
+        imageMarkup: activeImageMarkup,
+        promptMarkup: activePromptMarkup,
+        answerHtml: verdictAnswer
+      });
+      cacheOverlayDomRefs(overlay);
+      overlayRenderState.mode = "active";
+      overlayRenderState.activeQuestionId = active.id;
+      overlayRenderState.timerValue = null;
+      overlayRenderState.valueText = null;
+      overlayRenderState.verdictBadge = null;
+      overlayRenderState.answerHtml = null;
+      overlayRenderState.mediaMarkup = null;
+      overlayRenderState.promptMarkup = null;
+      overlayRenderState.cardVerdictClass = null;
+    }
+
+    updateActiveOverlayDom({
+      timerValue: overlayTimerValue,
+      valueText: `${active.value} Punkte · ${statusLabel}`,
+      verdictBadge,
+      verdictClass,
+      answerHtml: verdictAnswer,
+      imageMarkup: activeImageMarkup,
+      promptMarkup: activePromptMarkup
+    });
+    overlayRenderState.verdictToken = verdictFlash?.token ?? null;
     return;
   }
+
+  resetOverlayRenderState();
 
   if (verdictFlash) {
     const classes = ["question-overlay__card"];
@@ -564,15 +610,16 @@ function renderQuestionOverlay(dom, data) {
     }
     overlay.hidden = false;
     overlay.classList.add("is-visible");
-    overlay.innerHTML = `
-      <div class="${classes.join(" ")}">
-        <p class="question-overlay__value">${verdictFlash.value} Punkte</p>
-        ${verdictBadge}
-        ${verdictImageMarkup}
-        ${verdictPromptMarkup}
-        ${verdictAnswer}
-      </div>
-    `;
+    overlay.innerHTML = buildOverlayMarkup({
+      showTimer: false,
+      timerValue: 0,
+      classes,
+      valueText: `${verdictFlash.value} Punkte`,
+      verdictBadge,
+      imageMarkup: verdictImageMarkup,
+      promptMarkup: verdictPromptMarkup,
+      answerHtml: verdictAnswer
+    });
     return;
   }
 
@@ -593,6 +640,109 @@ function renderQuestionOverlay(dom, data) {
   overlay.hidden = true;
   overlay.classList.remove("is-visible");
   overlay.innerHTML = "";
+}
+
+function buildOverlayMarkup({
+  showTimer,
+  timerValue,
+  classes,
+  valueText,
+  verdictBadge,
+  imageMarkup,
+  promptMarkup,
+  answerHtml
+}) {
+  const timerMarkup = showTimer
+    ? `<div class="timer-chip timer-chip--overlay" data-role="overlay-timer">${timerValue}s</div>`
+    : "";
+  return `
+    ${timerMarkup}
+    <div class="${classes.join(" ")}" data-role="question-card">
+      <p class="question-overlay__value" data-role="question-meta">${valueText}</p>
+      <div class="question-overlay__verdict-slot" data-role="verdict-slot">${verdictBadge}</div>
+      <div data-role="media-slot">${imageMarkup || ""}</div>
+      <div data-role="prompt-slot">${promptMarkup || ""}</div>
+      <div data-role="answer-slot">${answerHtml || ""}</div>
+    </div>
+  `;
+}
+
+function cacheOverlayDomRefs(overlay) {
+  overlayRenderState.timerEl = overlay.querySelector('[data-role="overlay-timer"]');
+  overlayRenderState.metaEl = overlay.querySelector('[data-role="question-meta"]');
+  overlayRenderState.verdictSlot = overlay.querySelector('[data-role="verdict-slot"]');
+  overlayRenderState.answerSlot = overlay.querySelector('[data-role="answer-slot"]');
+  overlayRenderState.mediaSlot = overlay.querySelector('[data-role="media-slot"]');
+  overlayRenderState.promptSlot = overlay.querySelector('[data-role="prompt-slot"]');
+  overlayRenderState.cardEl = overlay.querySelector('[data-role="question-card"]');
+}
+
+function updateActiveOverlayDom({
+  timerValue,
+  valueText,
+  verdictBadge,
+  verdictClass,
+  answerHtml,
+  imageMarkup,
+  promptMarkup
+}) {
+  if (!overlayRenderState.metaEl || !overlayRenderState.cardEl) {
+    return;
+  }
+  if (overlayRenderState.timerEl) {
+    overlayRenderState.timerEl.textContent = `${timerValue}s`;
+  }
+  if (overlayRenderState.valueText !== valueText) {
+    overlayRenderState.metaEl.textContent = valueText;
+    overlayRenderState.valueText = valueText;
+  }
+  if (overlayRenderState.verdictBadge !== verdictBadge && overlayRenderState.verdictSlot) {
+    overlayRenderState.verdictSlot.innerHTML = verdictBadge;
+    overlayRenderState.verdictBadge = verdictBadge;
+  }
+  if (overlayRenderState.answerHtml !== answerHtml && overlayRenderState.answerSlot) {
+    overlayRenderState.answerSlot.innerHTML = answerHtml || "";
+    overlayRenderState.answerHtml = answerHtml;
+  }
+  if (overlayRenderState.mediaMarkup !== imageMarkup && overlayRenderState.mediaSlot) {
+    overlayRenderState.mediaSlot.innerHTML = imageMarkup || "";
+    overlayRenderState.mediaMarkup = imageMarkup;
+  }
+  if (overlayRenderState.promptMarkup !== promptMarkup && overlayRenderState.promptSlot) {
+    overlayRenderState.promptSlot.innerHTML = promptMarkup || "";
+    overlayRenderState.promptMarkup = promptMarkup;
+  }
+  if (overlayRenderState.cardEl) {
+    overlayRenderState.cardEl.classList.remove(
+      "question-overlay__card--correct",
+      "question-overlay__card--incorrect",
+      "question-overlay__card--closed"
+    );
+    if (verdictClass) {
+      overlayRenderState.cardEl.classList.add(verdictClass);
+    }
+    overlayRenderState.cardVerdictClass = verdictClass;
+  }
+}
+
+function resetOverlayRenderState() {
+  overlayRenderState.mode = "hidden";
+  overlayRenderState.activeQuestionId = null;
+  overlayRenderState.verdictToken = null;
+  overlayRenderState.timerValue = null;
+  overlayRenderState.valueText = null;
+  overlayRenderState.verdictBadge = null;
+  overlayRenderState.answerHtml = null;
+  overlayRenderState.mediaMarkup = null;
+  overlayRenderState.promptMarkup = null;
+  overlayRenderState.cardVerdictClass = null;
+  overlayRenderState.timerEl = null;
+  overlayRenderState.metaEl = null;
+  overlayRenderState.verdictSlot = null;
+  overlayRenderState.answerSlot = null;
+  overlayRenderState.mediaSlot = null;
+  overlayRenderState.promptSlot = null;
+  overlayRenderState.cardEl = null;
 }
 
 function renderQuestionMedia(imageSrc, options = {}) {
