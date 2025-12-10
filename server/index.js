@@ -18,7 +18,7 @@ import {
   serializeState,
   updateTimers
 } from "./gameState.js";
-import { Persistence } from "./persistence.js";
+import { Persistence, serializeSnapshot, applySnapshot } from "./persistence.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -110,6 +110,17 @@ function routeEvent(ws, event) {
       return handlePlayerBuzzer(ws);
     case "signal:relay":
       return relaySignal(ws, event);
+    case "admin:restoreSnapshot":
+      return requireAdmin(ws, () => {
+        if (!event.snapshot || typeof event.snapshot !== "object") {
+          return send(ws, { type: "error", message: "missing-snapshot" });
+        }
+        if (event.snapshot.version && event.snapshot.version !== 1) {
+          return send(ws, { type: "error", message: "snapshot-version-unsupported" });
+        }
+        applySnapshot(state, event.snapshot);
+        commitStateChange();
+      });
     default:
       return send(ws, { type: "error", message: "unknown-event" });
   }
@@ -189,7 +200,9 @@ function send(ws, data) {
 
 function sendState(ws, sessionInfo = clientSessions.get(ws)) {
   const includeAnswer = sessionInfo?.role === "admin";
-  send(ws, { type: "state", payload: serializeState(state, { includeAnswer }) });
+  const payload = serializeState(state, { includeAnswer });
+  const snapshot = sessionInfo?.role === "admin" ? serializeSnapshot(state) : undefined;
+  send(ws, { type: "state", payload, snapshot });
 }
 
 function broadcastState(skipWs) {

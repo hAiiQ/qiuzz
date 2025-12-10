@@ -168,6 +168,7 @@ export function handleAdminSelectQuestion(state, questionId) {
     id: question.id,
     categoryId: category.id,
     prompt: question.prompt,
+    image: question.image || null,
     answer: question.answer,
     value: question.value,
     roundIndex: state.currentRoundIndex,
@@ -366,6 +367,7 @@ export function serializeState(state, { includeAnswer = false } = {}) {
         id: state.activeQuestion.id,
         categoryId: state.activeQuestion.categoryId,
         prompt: state.activeQuestion.prompt,
+        image: state.activeQuestion.image || null,
         value: state.activeQuestion.value,
         status: state.activeQuestion.status,
         respondingSlot: state.activeQuestion.currentResponderSlot,
@@ -402,6 +404,7 @@ export function getAdminAnswer(state) {
   return {
     questionId: state.activeQuestion.id,
     prompt: state.activeQuestion.prompt,
+    image: state.activeQuestion.image || null,
     answer: state.activeQuestion.answer,
     value: state.activeQuestion.value
   };
@@ -558,6 +561,7 @@ function recordVerdict(state, verdict) {
   state.lastVerdict = {
     verdict,
     prompt: state.activeQuestion.prompt,
+    image: state.activeQuestion.image || null,
     value: state.activeQuestion.value,
     answer: state.activeQuestion.answer,
     token: state.lastVerdictToken

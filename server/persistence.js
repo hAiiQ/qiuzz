@@ -1,13 +1,16 @@
 import { promises as fs } from "fs";
 import path from "path";
 
-function serializeSnapshot(state) {
+export function serializeSnapshot(state) {
   return {
+    version: 1,
+    savedAt: Date.now(),
     questionStatus: Object.fromEntries(
       Object.entries(state.questionStatus).map(([id, meta]) => [id, { asked: meta.asked }])
     ),
     currentRoundIndex: state.currentRoundIndex,
     turnSlotIndex: state.turnSlotIndex,
+    turnLockSlot: state.turnLockSlot ?? null,
     playerSlots: state.playerSlots.map((player) =>
       player
         ? {
@@ -21,11 +24,13 @@ function serializeSnapshot(state) {
     adminProfile: {
       id: state.adminProfile.id,
       name: state.adminProfile.name
-    }
+    },
+    lastVerdict: state.lastVerdict,
+    lastVerdictToken: state.lastVerdictToken ?? 0
   };
 }
 
-function applySnapshot(state, snapshot) {
+export function applySnapshot(state, snapshot) {
   if (!snapshot) return;
   if (snapshot.questionStatus) {
     Object.entries(snapshot.questionStatus).forEach(([id, meta]) => {
@@ -40,6 +45,7 @@ function applySnapshot(state, snapshot) {
   if (typeof snapshot.turnSlotIndex === "number") {
     state.turnSlotIndex = snapshot.turnSlotIndex;
   }
+  state.turnLockSlot = typeof snapshot.turnLockSlot === "number" ? snapshot.turnLockSlot : null;
   if (Array.isArray(snapshot.playerSlots)) {
     for (let i = 0; i < state.playerSlots.length; i += 1) {
       state.playerSlots[i] = null;
@@ -61,6 +67,8 @@ function applySnapshot(state, snapshot) {
     state.adminProfile.connected = false;
   }
   state.activeQuestion = null;
+  state.lastVerdict = snapshot.lastVerdict ?? null;
+  state.lastVerdictToken = snapshot.lastVerdictToken ?? 0;
 }
 
 export class Persistence {

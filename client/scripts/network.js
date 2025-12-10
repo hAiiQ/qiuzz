@@ -95,6 +95,9 @@ export function initNetwork(store) {
         break;
       case "state":
         applyGameState(message.payload);
+        if (message.snapshot && store.persistSnapshot) {
+          store.persistSnapshot(message.snapshot);
+        }
         break;
       case "error":
         store.update((state) => {
@@ -146,6 +149,7 @@ export function initNetwork(store) {
         ? {
             questionId: payload.activeQuestion.id,
             prompt: payload.activeQuestion.prompt,
+            image: payload.activeQuestion.image || null,
             answer: payload.activeQuestion.answer,
             value: payload.activeQuestion.value
           }

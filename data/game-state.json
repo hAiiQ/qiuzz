@@ -1,166 +1,188 @@
 {
+  "version": 1,
+  "savedAt": 1765371345226,
   "questionStatus": {
-    "songs-round1-100": {
+    "marvel-round1-100": {
       "asked": false
     },
-    "songs-round1-200": {
+    "marvel-round1-200": {
       "asked": false
     },
-    "songs-round1-300": {
+    "marvel-round1-300": {
       "asked": false
     },
-    "songs-round1-400": {
+    "marvel-round1-400": {
       "asked": false
     },
-    "songs-round1-500": {
+    "marvel-round1-500": {
       "asked": false
     },
-    "question-round1-100": {
+    "teamups-round1-100": {
       "asked": false
     },
-    "question-round1-200": {
+    "teamups-round1-200": {
       "asked": false
     },
-    "question-round1-300": {
+    "teamups-round1-300": {
       "asked": false
     },
-    "question-round1-400": {
+    "teamups-round1-400": {
       "asked": false
     },
-    "question-round1-500": {
+    "teamups-round1-500": {
       "asked": false
     },
-    "general-round1-100": {
+    "mechanics-round1-100": {
       "asked": false
     },
-    "general-round1-200": {
+    "mechanics-round1-200": {
       "asked": false
     },
-    "general-round1-300": {
+    "mechanics-round1-300": {
       "asked": false
     },
-    "general-round1-400": {
+    "mechanics-round1-400": {
       "asked": false
     },
-    "general-round1-500": {
+    "mechanics-round1-500": {
       "asked": false
     },
-    "numbers-round1-100": {
+    "voicelines-round1-100": {
       "asked": false
     },
-    "numbers-round1-200": {
+    "voicelines-round1-200": {
       "asked": false
     },
-    "numbers-round1-300": {
+    "voicelines-round1-300": {
       "asked": false
     },
-    "numbers-round1-400": {
+    "voicelines-round1-400": {
       "asked": false
     },
-    "numbers-round1-500": {
+    "voicelines-round1-500": {
       "asked": false
     },
-    "flags-round1-100": {
+    "locations-round1-100": {
+      "asked": true
+    },
+    "locations-round1-200": {
       "asked": false
     },
-    "flags-round1-200": {
+    "locations-round1-300": {
       "asked": false
     },
-    "flags-round1-300": {
+    "locations-round1-400": {
       "asked": false
     },
-    "flags-round1-400": {
+    "locations-round1-500": {
+      "asked": true
+    },
+    "marvel-round2-200": {
       "asked": false
     },
-    "flags-round1-500": {
+    "marvel-round2-400": {
       "asked": false
     },
-    "songs-round2-200": {
+    "marvel-round2-600": {
       "asked": false
     },
-    "songs-round2-400": {
+    "marvel-round2-800": {
       "asked": false
     },
-    "songs-round2-600": {
+    "marvel-round2-1000": {
       "asked": false
     },
-    "songs-round2-800": {
+    "teamups-round2-200": {
       "asked": false
     },
-    "songs-round2-1000": {
+    "teamups-round2-400": {
       "asked": false
     },
-    "question-round2-200": {
+    "teamups-round2-600": {
       "asked": false
     },
-    "question-round2-400": {
+    "teamups-round2-800": {
       "asked": false
     },
-    "question-round2-600": {
+    "teamups-round2-1000": {
       "asked": false
     },
-    "question-round2-800": {
+    "mechanics-round2-200": {
       "asked": false
     },
-    "question-round2-1000": {
+    "mechanics-round2-400": {
       "asked": false
     },
-    "general-round2-200": {
+    "mechanics-round2-600": {
       "asked": false
     },
-    "general-round2-400": {
+    "mechanics-round2-800": {
       "asked": false
     },
-    "general-round2-600": {
+    "mechanics-round2-1000": {
       "asked": false
     },
-    "general-round2-800": {
+    "voicelines-round2-200": {
       "asked": false
     },
-    "general-round2-1000": {
+    "voicelines-round2-400": {
       "asked": false
     },
-    "numbers-round2-200": {
+    "voicelines-round2-600": {
       "asked": false
     },
-    "numbers-round2-400": {
+    "voicelines-round2-800": {
       "asked": false
     },
-    "numbers-round2-600": {
+    "voicelines-round2-1000": {
       "asked": false
     },
-    "numbers-round2-800": {
+    "locations-round2-200": {
       "asked": false
     },
-    "numbers-round2-1000": {
+    "locations-round2-400": {
       "asked": false
     },
-    "flags-round2-200": {
+    "locations-round2-600": {
       "asked": false
     },
-    "flags-round2-400": {
+    "locations-round2-800": {
       "asked": false
     },
-    "flags-round2-600": {
-      "asked": false
-    },
-    "flags-round2-800": {
-      "asked": false
-    },
-    "flags-round2-1000": {
+    "locations-round2-1000": {
       "asked": false
     }
   },
   "currentRoundIndex": 0,
-  "turnSlotIndex": 0,
+  "turnSlotIndex": 1,
+  "turnLockSlot": 1,
   "playerSlots": [
-    null,
-    null,
+    {
+      "id": "d96395d5-f49d-4e3e-8c19-bbdfbad5d9bb",
+      "name": "test2",
+      "score": -50,
+      "slotIndex": 0
+    },
+    {
+      "id": "afaed457-7fb6-4579-bbe8-74b434fcba91",
+      "name": "admin",
+      "score": -150,
+      "slotIndex": 1
+    },
     null,
     null
   ],
   "adminProfile": {
     "id": null,
-    "name": "test1"
-  }
+    "name": "admin"
+  },
+  "lastVerdict": {
+    "verdict": "closed",
+    "prompt": "Welcher Ort ist auf dem Bild zu sehen?",
+    "image": "/assets/images/Runde1_500.png",
+    "value": 500,
+    "answer": "Central Park",
+    "token": 4
+  },
+  "lastVerdictToken": 4
 }

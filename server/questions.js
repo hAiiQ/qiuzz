@@ -11,58 +11,83 @@ const roundDefinitions = [
     values: round1Values,
     categories: [
       {
-        id: "songs",
-        title: "Songs & Lyrics",
+        id: "marvel",
+        title: "Rund um Marvel",
         questions: [
-          { value: 100, prompt: "Welche Band schrieb den Song 'Tage wie diese'?", answer: "Die Toten Hosen" },
-          { value: 200, prompt: "Welche Saengerin landete 2013 mit 'Atemlos durch die Nacht' einen Nummer-1-Hit?", answer: "Helene Fischer" },
-          { value: 300, prompt: "Welcher DJ wurde mit dem Track 'Animals' beruehmt?", answer: "Martin Garrix" },
-          { value: 400, prompt: "Welcher Rapper veroefentlichte 2009 das Album 'Stadtaffe'?", answer: "Peter Fox" },
-          { value: 500, prompt: "Wie heißt das Album, auf dem Die Fantastischen Vier 1992 'Die da!?!' herausbrachten?", answer: "4 gewinnt" }
+          { value: 100, prompt: "Wie heißt Spider-Man mit richtigem Namen?", answer: "Peter Parker" },
+          { value: 200, prompt: "Wie heißt der Hammer von Thor?", answer: "Mjölnir" },
+          { value: 300, prompt: "Wie heißt Captain Americas Schildmaterial?", answer: "Vibranium" },
+          { value: 400, prompt: "Welches Doppelleben führt Luna Snow?", answer: "Sie ist K-Pop-Sängerin" },
+          { value: 500, prompt: "Was für ein Gott ist Loki?", answer: "Gott des Schabernacks" }
         ]
       },
       {
-        id: "question",
-        title: "Was ist die Frage",
+        id: "teamups",
+        title: "Team-Ups",
         questions: [
-          { value: 100, prompt: "Wie heißt die Hauptstadt von Bayern?", answer: "Muenchen" },
-          { value: 200, prompt: "Welches chemische Element traegt das Symbol O?", answer: "Sauerstoff" },
-          { value: 300, prompt: "Wie viele Bundeslaender hat Deutschland?", answer: "Sechzehn" },
-          { value: 400, prompt: "Wie lautet der Name der laengsten deutschen Autobahn?", answer: "A7" },
-          { value: 500, prompt: "Wie beginnt Artikel 1 des Grundgesetzes?", answer: "Die Wuerde des Menschen ist unantastbar" }
+          { value: 100, prompt: "Wer von den 3 ist am wichtigsten für das Team-Up? Loki, Mantis oder Groot", answer: "Mantis" },
+          { value: 200, prompt: "Mit wem hat Cloak & Dagger ein Team-Up?", answer: "Moon Knight & Blade" },
+          { value: 300, prompt: "Welches Team-Up wurde in Season 3 permanent gebannt?", answer: "Human Torch & Storm" },
+          { value: 400, prompt: "Welches Team-Up war in Season 1 das beste, um Gegner zu flanken und zu 1-Shotten?", answer: "Venom, Spider-Man" },
+          { value: 500, prompt: "4 Charaktere bilden ein gemeinsames Team-Up. Welche 4 sind es?", answer: "Human Torch, Mister Fantastic, Invisible Woman, The Thing" }
         ]
       },
       {
-        id: "general",
-        title: "Allgemein",
+        id: "mechanics",
+        title: "Game Mechanics",
         questions: [
-          { value: 100, prompt: "Welches Gewuerz faerbt Currymischungen gelb?", answer: "Kurkuma" },
-          { value: 200, prompt: "Welcher deutsche Fluss fliesst durch Dresden und Hamburg?", answer: "Elbe" },
-          { value: 300, prompt: "Welcher italienische Kuenstler malte 'Das Abendmahl'?", answer: "Leonardo da Vinci" },
-          { value: 400, prompt: "Welcher Physiker formulierte die Relativitaetstheorie?", answer: "Albert Einstein" },
-          { value: 500, prompt: "Welcher Philosoph schrieb 'Kritik der reinen Vernunft'?", answer: "Immanuel Kant" }
+          { value: 100, prompt: "Wie viele Spieler hat ein Team?", answer: "6 Spieler" },
+          { value: 200, prompt: "Ab wie vielen Spielern wird der Payload am schnellsten bewegt?", answer: "Ab 3 Spielern" },
+          { value: 300, prompt: "Kann man in den Gegnerischen Spawn/Safezone rein?", answer: "Ja, durch eine Gegnerische Ult von Jeff" },
+          { value: 400, prompt: "Wie hoch ist der Timer bei der Charakterauswahl?", answer: "30 Sekunden" },
+          { value: 500, prompt: "Wie lange dauert es zum respawnen nach einem Tod?", answer: "10 Sekunden" }
         ]
       },
       {
-        id: "numbers",
-        title: "Zahlen",
+        id: "voicelines",
+        title: "Voice-Lines",
         questions: [
-          { value: 100, prompt: "Wie viele Ecken hat ein gleichseitiges Dreieck?", answer: "Drei" },
-          { value: 200, prompt: "Wieviel ist 11 + 22 + 33?", answer: "66" },
-          { value: 300, prompt: "Wie viele Grad besitzt ein Vollkreis?", answer: "360" },
-          { value: 400, prompt: "Wie viele Tage hat ein Schaltjahr?", answer: "366" },
-          { value: 500, prompt: "Welche Primzahl liegt direkt vor 100?", answer: "97" }
+          { value: 100, prompt: "Luna Snow: “I am ready to ...!”", answer: "Luna Snow: “I am ready to put on a show”" },
+          { value: 200, prompt: "Thor: “Behold, the God of ...!”", answer: "Thor: “Behold, the God of Thunder!”" },
+          { value: 300, prompt: "Moon Knight: “The ... haunts ...!”", answer: "Moon Knight: “The moon haunts you!”" },
+          { value: 400, prompt: "Squirrel Girl: “My friends ...!”", answer: "Squirrel Girl: “My friends are here!”" },
+          { value: 500, prompt: "Magik: “Behold: ...!”", answer: "Magik: “Behold: Darkchild!”" }
         ]
       },
       {
-        id: "flags",
-        title: "Flaggen",
+        id: "locations",
+        title: "Wo ist das?",
         questions: [
-          { value: 100, prompt: "Welche Farben hat die Flagge Deutschlands von oben nach unten?", answer: "Schwarz Rot Gold" },
-          { value: 200, prompt: "Welches Land fuehrt ein rotes Ahornblatt auf weissem Grund?", answer: "Kanada" },
-          { value: 300, prompt: "Welche Flagge zeigt ein blaues Kreuz auf weissem Grund?", answer: "Finnland" },
-          { value: 400, prompt: "Welches Land hat ein weisses Kreuz auf rotem Grund als Flagge?", answer: "Schweiz" },
-          { value: 500, prompt: "Welche Flagge zeigt einen goldenen Stern auf rotem Grund mit gruener und gelber Umrandung?", answer: "Kamerun" }
+          {
+            value: 100,
+            prompt: "Welcher Ort ist auf dem Bild zu sehen?",
+            answer: "Halle von Djalia",
+            image: "/assets/images/Runde1_100.png"
+          },
+          {
+            value: 200,
+            prompt: "Welcher Ort ist auf dem Bild zu sehen?",
+            answer: "Spinneninsel Tokyo 2099",
+            image: "/assets/images/Runde1_200.png"
+          },
+          {
+            value: 300,
+            prompt: "Welcher Ort ist auf dem Bild zu sehen?",
+            answer: "Yggsgard",
+            image: "/assets/images/Runde1_300.png"
+          },
+          {
+            value: 400,
+            prompt: "Welcher Ort ist auf dem Bild zu sehen?",
+            answer: "Midtown",
+            image: "/assets/images/Runde1_400.png"
+          },
+          {
+            value: 500,
+            prompt: "Welcher Ort ist auf dem Bild zu sehen?",
+            answer: "Central Park",
+            image: "/assets/images/Runde1_500.png"
+          }
         ]
       }
     ]
@@ -73,58 +98,83 @@ const roundDefinitions = [
     values: round2Values,
     categories: [
       {
-        id: "songs",
-        title: "Songs & Lyrics",
+        id: "marvel",
+        title: "Rund um Marvel",
         questions: [
-          { value: 200, prompt: "Welche Saengerin gewann 2011 Grammys mit 'Rolling in the Deep'?", answer: "Adele" },
-          { value: 400, prompt: "Welche Berliner Band veroefentlichte 2000 den Song 'Wie es geht'?", answer: "Die Aerzte" },
-          { value: 600, prompt: "Wer komponierte die Oper 'Der Freischuetz'?", answer: "Carl Maria von Weber" },
-          { value: 800, prompt: "Welches Elektro-Duo veroefentlichte 1978 'Die Mensch-Maschine'?", answer: "Kraftwerk" },
-          { value: 1000, prompt: "Welcher Gitarrist nahm 1984 das Minimal-Album 'E2-E4' auf?", answer: "Manuel Goettsching" }
+          { value: 200, prompt: "Wie heißt Iron Man mit richtigem Namen?", answer: "Tony Stark" },
+          { value: 400, prompt: "Wer verwandelt sich wenn er sauer wird?", answer: "Bruce Benner" },
+          { value: 600, prompt: "Wie heißt Tony Starks AI System?", answer: "Jarvis" },
+          { value: 800, prompt: "Wie heißt die jüngere Tochter von Thanos?", answer: "Nebula" },
+          { value: 1000, prompt: "Wie heißt das Raumschiff von den Guardians of the Galaxy?", answer: "Die Milano" }
         ]
       },
       {
-        id: "question",
-        title: "Was ist die Frage",
+        id: "teamups",
+        title: "Team-Ups",
         questions: [
-          { value: 200, prompt: "Wie heißt die Hauptstadt von Portugal?", answer: "Lissabon" },
-          { value: 400, prompt: "Wie heißt das Parlament der Schweiz?", answer: "Bundesversammlung" },
-          { value: 600, prompt: "Welche deutsche Universitaet wurde 1386 gegruendet?", answer: "Heidelberg" },
-          { value: 800, prompt: "Wie heißt der Prozess, bei dem Pflanzen CO2 in Zucker umwandeln?", answer: "Photosynthese" },
-          { value: 1000, prompt: "Welcher Vertrag legte 1919 die Nachkriegsordnung Europas fest?", answer: "Vertrag von Versailles" }
+          { value: 200, prompt: "Mit wem hat Thor in Season 4 ein neues Team-Up bekommen?", answer: "Angela" },
+          { value: 400, prompt: "Was bringt das neue Team-Up für Black Panther mit Hulk & Namor?", answer: "Er bekommt einen Gamma-Schild von Hulk, wenn er wenig Leben hat" },
+          { value: 600, prompt: "Was bringt das neue Team-Up für Star-Lord mit Rocket Raccoon & Peni Parker?", answer: "Er bekommt einen Teleport" },
+          { value: 800, prompt: "Bei welchem Team-Up war es nicht schlimm, wenn man 1x gestorben ist?", answer: "Adam Warlock, Mantis & Star-Lord" },
+          { value: 1000, prompt: "Welches alte Team-Up war von anfang an OP, wurde aber direkt danach generft?", answer: "Hulk, Strange & Iron-Man" }
         ]
       },
       {
-        id: "general",
-        title: "Allgemein",
+        id: "mechanics",
+        title: "Game Mechanics",
         questions: [
-          { value: 200, prompt: "Welcher Hersteller baut das Modell Golf?", answer: "Volkswagen" },
-          { value: 400, prompt: "Welche Wissenschaftlerin entdeckte Radium zusammen mit ihrem Ehemann?", answer: "Marie Curie" },
-          { value: 600, prompt: "Welcher Autor schrieb 'Der Steppenwolf'?", answer: "Hermann Hesse" },
-          { value: 800, prompt: "Wie heißt das deutsche Zentrum fuer Luft- und Raumfahrt?", answer: "DLR" },
-          { value: 1000, prompt: "Welche Stadt war 1648 Ort der Schlussverhandlungen des Westfaelischen Friedens?", answer: "Muenster" }
+          { value: 200, prompt: "Was ist ein ausgeglichendes Team?", answer: "2 Tank - 2 DPS - 2 Supports" },
+          { value: 400, prompt: "Auf wie viel % wird die Ultimate zurückgesetzt, wenn man 100% hat und den Charakter wechselt?", answer: "50%" },
+          { value: 600, prompt: "Nenne mir 5 Dive Charaktere", answer: "Black Panther, Hulk, Captain America, Iron Fist, Jeff, Magik, Mantis, Psylock, Rocket Raccon, Spiderman, Star-Lord, The Thing, Thor, Ultron, Venom, Wolverine" },
+          { value: 800, prompt: "Womit kann man einen Punkt mit dem gesamten Team in letzter Sekunde gewinnen?", answer: "Mit einem Doctor Strange Portal" },
+          { value: 1000, prompt: "Wie hoch ist der Cooldown von Doctor Strange's Portal?", answer: "180 Sekunden" }
         ]
       },
       {
-        id: "numbers",
-        title: "Zahlen",
+        id: "voicelines",
+        title: "Voice-Lines",
         questions: [
-          { value: 200, prompt: "Wie viele Sekunden hat eine Stunde?", answer: "3600" },
-          { value: 400, prompt: "Wie lautet die Quadratwurzel aus 256?", answer: "16" },
-          { value: 600, prompt: "Wie viele Nullen hat eine deutsche Billion?", answer: "12" },
-          { value: 800, prompt: "Wie lautet 17 hoch 3?", answer: "4913" },
-          { value: 1000, prompt: "Welche Summe ergibt 1 + 2 + ... + 20?", answer: "210" }
+          { value: 200, prompt: "Loki: “Your ... are mine!”", answer: "Loki: “Your powers are mine!”" },
+          { value: 400, prompt: "Black Widow: “Plasma ...!”", answer: "Black Widow: “Plasma Burst!”" },
+          { value: 600, prompt: "Phoenix: “You are ...!”", answer: "Phoenix: “You are nothing!”" },
+          { value: 800, prompt: "Mantis: “We are ...!”", answer: "Mantis: “We are undefeatable!”" },
+          { value: 1000, prompt: "Blade: “A thousand ...!”", answer: "Blade: “A thousand cuts!”" }
         ]
       },
       {
-        id: "flags",
-        title: "Flaggen",
+        id: "locations",
+        title: "Wo ist das?",
         questions: [
-          { value: 200, prompt: "Welche Farben hat die Flagge Frankreichs von links nach rechts?", answer: "Blau Weiss Rot" },
-          { value: 400, prompt: "Welches Land zeigt einen roten Kreis auf gruener Flaeche?", answer: "Bangladesch" },
-          { value: 600, prompt: "Welches Land fuehrt einen weissen Zedernbaum auf rotem und weissem Grund?", answer: "Libanon" },
-          { value: 800, prompt: "Welches Land nutzt gruen-weiss-schwarze Streifen mit rotem Dreieck und weissem Stern?", answer: "Jordanien" },
-          { value: 1000, prompt: "Welches Land zeigt einen schwarzen Doppeladler auf rotem Grund?", answer: "Albanien" }
+          {
+            value: 200,
+            prompt: "Welcher Ort ist auf dem Bild zu sehen?",
+            answer: "Arakko",
+            image: "/assets/images/Runde2_200.png"
+          },
+          {
+            value: 400,
+            prompt: "Welcher Ort ist auf dem Bild zu sehen?",
+            answer: "Gala Krakoa",
+            image: "/assets/images/Runde2_400.png"
+          },
+          {
+            value: 600,
+            prompt: "Welcher Ort ist auf dem Bild zu sehen?",
+            answer: "Hydrabase",
+            image: "/assets/images/Runde2_600.png"
+          },
+          {
+            value: 800,
+            prompt: "Welcher Ort ist auf dem Bild zu sehen?",
+            answer: "Birnin T'Challa",
+            image: "/assets/images/Runde2_800.png"
+          },
+          {
+            value: 1000,
+            prompt: "Welcher Ort ist auf dem Bild zu sehen?",
+            answer: "Klyntar",
+            image: "/assets/images/Runde2_1000.png"
+          }
         ]
       }
     ]
@@ -143,7 +193,8 @@ function decorateRound(round) {
         id: `${category.id}-${round.id}-${question.value}`,
         value: question.value,
         prompt: question.prompt,
-        answer: question.answer
+        answer: question.answer,
+        image: question.image || null
       }))
     }))
   };

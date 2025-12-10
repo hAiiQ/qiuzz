@@ -1,4 +1,5 @@
 const VERDICT_FLASH_DURATION = 3000;
+const SOUND_VOLUME = 0.4;
 const verdictFlashState = {
   token: 0,
   visible: false,
@@ -10,10 +11,21 @@ const verdictFlashState = {
 const playersRenderState = {
   cards: new Map()
 };
+const soundState = {
+  buzzer: null,
+  verdictCorrect: null,
+  verdictIncorrect: null,
+  verdictClosed: null,
+  lastBuzzerQuestionId: null,
+  lastBuzzerResponderSlot: null,
+  lastVerdictToken: null,
+  unlocked: false
+};
 
 export function initUI({ appEl, state, network, camera }) {
   const dom = buildLayout(appEl, state.data.client.role);
   let adminWindow = null;
+  preloadSounds();
 
   dom.nameForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -91,6 +103,55 @@ export function initUI({ appEl, state, network, camera }) {
     });
   }
 
+  if (dom.restoreGameButton) {
+    dom.restoreGameButton.addEventListener("click", () => {
+      if (state.data.client.role !== "admin") {
+        return;
+      }
+      const snapshot = state.loadSnapshot?.();
+      if (!snapshot) {
+        state.update((data) => {
+          data.ui.error = "Kein gespeicherter Spielstand gefunden.";
+        });
+        return;
+      }
+      if (!window.confirm("Gespeicherten Spielstand wiederherstellen? Aktuelle Partie wird ueberschrieben.")) {
+        return;
+      }
+      network.sendAction({ type: "admin:restoreSnapshot", snapshot });
+    });
+  }
+
+  appEl.addEventListener("click", (event) => {
+    const trigger =
+      event.target instanceof HTMLElement
+        ? event.target.closest('[data-role="question-media-trigger"]')
+        : null;
+    if (!(trigger instanceof HTMLElement)) {
+      return;
+    }
+    const src = trigger.getAttribute("data-media-src");
+    if (src) {
+      openMediaLightbox(dom, src);
+    }
+  });
+
+  if (dom.mediaLightbox) {
+    dom.mediaLightbox.addEventListener("click", (event) => {
+      if (event.target === dom.mediaLightbox) {
+        closeMediaLightbox(dom);
+      }
+    });
+  }
+  if (dom.mediaLightboxClose) {
+    dom.mediaLightboxClose.addEventListener("click", () => closeMediaLightbox(dom));
+  }
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeMediaLightbox(dom);
+    }
+  });
+
   state.subscribe((data) => {
     renderBoard(dom, data, state.data.client.role);
     renderQuestionOverlay(dom, data);
@@ -123,6 +184,7 @@ function buildLayout(appEl, role) {
           <p class="admin-controls__hint">Öffne das Popup, um Fragen zu steuern und Antworten zu sehen.</p>
           <div class="controls-grid">
             <button data-action="open-admin-window">Admin-Fenster öffnen</button>
+            <button data-action="restore-game" type="button" hidden>Spielstand wiederherstellen</button>
           </div>
         </div>
         <div class="player-controls" data-role="player-controls" hidden>
@@ -155,6 +217,10 @@ function buildLayout(appEl, role) {
         <button type="submit">Verbinden</button>
       </form>
     </div>
+    <div class="media-lightbox" data-role="media-lightbox" hidden>
+      <button type="button" class="media-lightbox__close" data-role="media-lightbox-close" aria-label="Bild schließen">×</button>
+      <img data-role="media-lightbox-image" alt="Fragebild vergrößert" />
+    </div>
     <div class="toast" data-role="toast" hidden></div>
   `;
 
@@ -167,6 +233,7 @@ function buildLayout(appEl, role) {
     roundLabel: appEl.querySelector('[data-role="round-label"]'),
     adminControls: appEl.querySelector('[data-role="admin-controls"]'),
     adminWindowButton: appEl.querySelector('[data-action="open-admin-window"]'),
+    restoreGameButton: appEl.querySelector('[data-action="restore-game"]'),
     playerControls: appEl.querySelector('[data-role="player-controls"]'),
     adminNameOverlay: appEl.querySelector('[data-role="admin-name-overlay"]'),
     buzzerButton: appEl.querySelector('#buzzer-button'),
@@ -175,7 +242,10 @@ function buildLayout(appEl, role) {
     nameModal: appEl.querySelector('[data-role="name-modal"]'),
     nameForm: appEl.querySelector('.name-form'),
     nameInput: appEl.querySelector('.name-form input'),
-    toast: appEl.querySelector('[data-role="toast"]')
+    toast: appEl.querySelector('[data-role="toast"]'),
+    mediaLightbox: appEl.querySelector('[data-role="media-lightbox"]'),
+    mediaLightboxImage: appEl.querySelector('[data-role="media-lightbox-image"]'),
+    mediaLightboxClose: appEl.querySelector('[data-role="media-lightbox-close"]')
   };
 }
 
@@ -210,9 +280,11 @@ function renderAdminWindowContent(targetWindow, data, network) {
   const doc = targetWindow.document;
   doc.title = "Quizduell – Admin";
   const active = data.game.activeQuestion;
+  maybePlayBuzzerSound(active);
   const answer = data.ui.adminAnswer;
   const prompt = escapeHtml(answer?.prompt || active?.prompt || "Noch keine aktive Frage.");
   const response = escapeHtml(answer?.answer || "–");
+  const imageMarkup = renderQuestionMedia(answer?.image || active?.image, { interactive: false });
   const statusLabel = active
     ? active.status === "awaiting_buzz"
       ? "Buzzern erlaubt"
@@ -254,6 +326,26 @@ function renderAdminWindowContent(targetWindow, data, network) {
       p {
         margin: 0;
       }
+      .question-media {
+        margin: 0.75rem 0;
+        display: flex;
+        justify-content: center;
+      }
+      .question-media__image {
+        width: 100%;
+        max-width: 360px;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(0, 0, 0, 0.25);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      }
+      .question-media__image img {
+        display: block;
+        width: 100%;
+        height: auto;
+        object-fit: cover;
+      }
       .status-chip {
         display: inline-flex;
         align-items: center;
@@ -269,6 +361,26 @@ function renderAdminWindowContent(targetWindow, data, network) {
         font-size: 1rem;
         line-height: 1.5;
         margin-top: 0.5rem;
+      }
+      .question-media {
+        margin: 0.75rem 0;
+        display: flex;
+        justify-content: center;
+      }
+      .question-media__image {
+        width: min(320px, 90%);
+        height: 200px;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(0, 0, 0, 0.25);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      }
+      .question-media__image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
       }
       .answer-text {
         font-size: 1.15rem;
@@ -307,6 +419,7 @@ function renderAdminWindowContent(targetWindow, data, network) {
       </section>
       <section class="admin-popup__section">
         <h2>Frage</h2>
+        ${imageMarkup}
         <p class="question-prompt">${prompt}</p>
         <h2>Antwort</h2>
         <p class="answer-text">${response}</p>
@@ -364,7 +477,7 @@ function renderAdminCard(dom, data) {
 
 function renderBoard(dom, data, role) {
   dom.roundLabel.textContent = `${data.game.roundTitle} (${data.game.roundNumber}/${data.game.totalRounds})`;
-  dom.timerChip.textContent = `${data.game.activeQuestion?.secondsRemaining ?? 30}s`;
+  dom.timerChip.textContent = `${data.game.activeQuestion?.secondsRemaining ?? data.game.timerSeconds ?? 30}s`;
   const turnPlayer = data.game.players.find((player) => player.isTurn && player.connected);
   dom.turnIndicator.textContent = turnPlayer
     ? `${turnPlayer.name} ist an der Reihe`
@@ -397,6 +510,7 @@ function renderQuestionOverlay(dom, data) {
   verdictFlashState.data = data;
 
   const active = data.game.activeQuestion;
+  const overlayTimerValue = active?.secondsRemaining ?? data.game.timerSeconds ?? 30;
   updateVerdictFlash(data.game.lastVerdict);
   const verdictFlash = verdictFlashState.visible ? verdictFlashState.verdict : null;
   const verdictClass = verdictFlash ? getVerdictClass(verdictFlash.verdict) : "";
@@ -409,6 +523,12 @@ function renderQuestionOverlay(dom, data) {
   const shouldRevealAnswer = verdictFlash && ["correct", "closed"].includes(verdictFlash.verdict);
   const verdictAnswer = shouldRevealAnswer && verdictFlash?.answer
     ? `<p class="question-overlay__answer"><span>Antwort:</span> ${escapeHtml(verdictFlash.answer)}</p>`
+    : "";
+  const activeImageMarkup = renderQuestionMedia(active?.image);
+  const activePromptMarkup = renderPromptMarkup(active?.prompt, Boolean(active?.image));
+  const verdictImageMarkup = verdictFlash ? renderQuestionMedia(verdictFlash.image) : "";
+  const verdictPromptMarkup = verdictFlash
+    ? renderPromptMarkup(verdictFlash.prompt, Boolean(verdictFlash.image))
     : "";
 
   if (active) {
@@ -425,10 +545,12 @@ function renderQuestionOverlay(dom, data) {
     overlay.hidden = false;
     overlay.classList.add("is-visible");
     overlay.innerHTML = `
+      <div class="timer-chip timer-chip--overlay">${overlayTimerValue}s</div>
       <div class="${classes.join(" ")}">
         <p class="question-overlay__value">${active.value} Punkte · ${statusLabel}</p>
         ${verdictBadge}
-        <h3 class="question-overlay__prompt">${escapeHtml(active.prompt)}</h3>
+        ${activeImageMarkup}
+        ${activePromptMarkup}
         ${verdictAnswer}
       </div>
     `;
@@ -446,7 +568,8 @@ function renderQuestionOverlay(dom, data) {
       <div class="${classes.join(" ")}">
         <p class="question-overlay__value">${verdictFlash.value} Punkte</p>
         ${verdictBadge}
-        <h3 class="question-overlay__prompt">${escapeHtml(verdictFlash.prompt)}</h3>
+        ${verdictImageMarkup}
+        ${verdictPromptMarkup}
         ${verdictAnswer}
       </div>
     `;
@@ -470,6 +593,61 @@ function renderQuestionOverlay(dom, data) {
   overlay.hidden = true;
   overlay.classList.remove("is-visible");
   overlay.innerHTML = "";
+}
+
+function renderQuestionMedia(imageSrc, options = {}) {
+  if (!imageSrc) {
+    return "";
+  }
+  const { interactive = true } = options;
+  const safeSrc = escapeHtml(imageSrc);
+  if (interactive) {
+    return `
+      <div class="question-media">
+        <button type="button" class="question-media__image question-media__image--button" data-role="question-media-trigger" data-media-src="${safeSrc}" aria-label="Bild vergrößern">
+          <img src="${safeSrc}" alt="Fragebild" loading="lazy" />
+          <span class="question-media__hint">Zum Vergrößern klicken</span>
+        </button>
+      </div>
+    `;
+  }
+  return `
+    <div class="question-media">
+      <div class="question-media__image">
+        <img src="${safeSrc}" alt="Fragebild" loading="lazy" />
+      </div>
+    </div>
+  `;
+}
+
+function renderPromptMarkup(prompt, hasImage) {
+  if (hasImage) {
+    return '<p class="question-overlay__notice">Bildfrage – zum Vergrößern klicken</p>';
+  }
+  if (!prompt) {
+    return "";
+  }
+  return `<h3 class="question-overlay__prompt">${escapeHtml(prompt)}</h3>`;
+}
+
+function openMediaLightbox(dom, src) {
+  if (!dom.mediaLightbox || !dom.mediaLightboxImage) {
+    return;
+  }
+  dom.mediaLightboxImage.src = src;
+  dom.mediaLightbox.hidden = false;
+  dom.mediaLightbox.classList.add("is-visible");
+  document.body.classList.add("media-lightbox-open");
+}
+
+function closeMediaLightbox(dom) {
+  if (!dom.mediaLightbox || !dom.mediaLightboxImage) {
+    return;
+  }
+  dom.mediaLightbox.classList.remove("is-visible");
+  dom.mediaLightboxImage.src = "";
+  dom.mediaLightbox.hidden = true;
+  document.body.classList.remove("media-lightbox-open");
 }
 
 function renderPlayers(dom, data) {
@@ -516,6 +694,9 @@ function renderAdminControlsState(dom, data) {
   controlsEl.classList.remove("is-disabled");
   if (dom.adminWindowButton) {
     dom.adminWindowButton.disabled = false;
+  }
+  if (dom.restoreGameButton) {
+    dom.restoreGameButton.hidden = !data.ui.snapshotAvailable;
   }
 }
 
@@ -572,6 +753,7 @@ function updateVerdictFlash(verdict) {
   if (verdict.token === verdictFlashState.token) {
     return;
   }
+  playVerdictSound(verdict);
   startVerdictFlash(verdict);
 }
 
@@ -599,6 +781,117 @@ function stopVerdictFlash() {
   }
   verdictFlashState.visible = false;
   verdictFlashState.verdict = null;
+}
+
+function preloadSounds() {
+  soundState.buzzer = createSound("./assets/sounds/buzzer.mp3");
+  soundState.verdictCorrect = createSound("./assets/sounds/richtig.mp3");
+  soundState.verdictIncorrect = createSound("./assets/sounds/falsch.mp3");
+  soundState.verdictClosed = createSound("./assets/sounds/closed.mp3");
+  setupSoundUnlock();
+}
+
+function createSound(src) {
+  if (!window.Audio) return null;
+  const audio = new Audio(src);
+  audio.preload = "auto";
+  audio.volume = SOUND_VOLUME;
+  audio.load();
+  return audio;
+}
+
+function playSound(instance) {
+  if (!instance) return;
+  if (!soundState.unlocked) {
+    return;
+  }
+  const node = instance.cloneNode();
+  node.volume = SOUND_VOLUME;
+  node.play().catch(() => {
+    /* Benutzerinteraktion erforderlich */
+  });
+}
+
+function maybePlayBuzzerSound(activeQuestion) {
+  if (!activeQuestion || activeQuestion.status !== "answering") {
+    return;
+  }
+  const responderSlot =
+    typeof activeQuestion.respondingSlot === "number"
+      ? activeQuestion.respondingSlot
+      : typeof activeQuestion.currentResponderSlot === "number"
+        ? activeQuestion.currentResponderSlot
+        : null;
+  if (
+    soundState.lastBuzzerQuestionId === activeQuestion.id &&
+    soundState.lastBuzzerResponderSlot === responderSlot
+  ) {
+    return;
+  }
+  soundState.lastBuzzerQuestionId = activeQuestion.id;
+  soundState.lastBuzzerResponderSlot = responderSlot;
+  playSound(soundState.buzzer);
+}
+
+function setupSoundUnlock() {
+  const handler = () => {
+    soundState.unlocked = true;
+    unlockSounds();
+    window.removeEventListener("pointerdown", handler);
+    window.removeEventListener("keydown", handler);
+  };
+  window.addEventListener("pointerdown", handler, { once: true });
+  window.addEventListener("keydown", handler, { once: true });
+}
+
+function unlockSounds() {
+  const sounds = [
+    soundState.buzzer,
+    soundState.verdictCorrect,
+    soundState.verdictIncorrect,
+    soundState.verdictClosed
+  ].filter(Boolean);
+  if (sounds.length === 0) {
+    soundState.unlocked = true;
+    return;
+  }
+  sounds.forEach((audio) => {
+    const previousVolume = audio.volume;
+    audio.volume = 0;
+    const playPromise = audio.play();
+    if (playPromise?.then) {
+      playPromise
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.volume = previousVolume;
+          soundState.unlocked = true;
+        })
+        .catch(() => {
+          audio.volume = previousVolume;
+        });
+    } else {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = previousVolume;
+      soundState.unlocked = true;
+    }
+  });
+}
+
+function playVerdictSound(verdict) {
+  if (!verdict) return;
+  if (soundState.lastVerdictToken === verdict.token) {
+    return;
+  }
+  soundState.lastVerdictToken = verdict.token;
+  if (verdict.verdict === "correct") {
+    playSound(soundState.verdictCorrect);
+  } else if (verdict.verdict === "incorrect") {
+    playSound(soundState.verdictIncorrect);
+  } else if (verdict.verdict === "closed") {
+    playSound(soundState.verdictClosed);
+  }
 }
 
 function getVerdictClass(verdict) {
